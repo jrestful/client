@@ -85,7 +85,8 @@
    * Initializer, provides a <code>config</code> method to be called in a configuration block,
    * and a <code>run</code> method to be called in a run block.
    */
-  .provider("jrestful", [function() {
+  .provider("jrestful", [
+  function() {
     
     return {
       config: config,

@@ -157,7 +157,8 @@
    * Initializer, extends <code>jrestfulProvider</code> <code>config</code> method to be called in a configuration block,
    * and <code>jrestfulProvider</code> <code>run</code> method to be called in a run block.
    */
-  .provider("jrestfulAuth", ["jrestfulProvider", function(jrestfulProvider) {
+  .config(["jrestfulProvider",
+  function(jrestfulProvider) {
     
     var configCallfront = jrestfulProvider.config;    
     jrestfulProvider.config = function($injector) {
@@ -174,12 +175,6 @@
         }
       }
     };
-    
-    return {
-      $get: function() {
-        throw "jrestfulAuth cannot be injected";
-      }
-    }
     
   }]);
   
