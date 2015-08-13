@@ -1,6 +1,9 @@
 (function(angular, undefined) {
-  
+    
   "use strict";
+  
+  var CONTENT_TYPE_HEADER = "Content-Type",
+      HAL_MEDIA_TYPE = "application/hal+json";
   
   /**
    * Called in a configuration block, $injector belongs to the calling module.
@@ -10,7 +13,9 @@
     var Security = $injector.has("Security") ? $injector.get("Security") : {};
     var $httpProvider = $injector.get("$httpProvider");
     
-    $httpProvider.defaults.headers.common["Accept"] = "application/hal+json";
+    $httpProvider.defaults.headers.common["Accept"] = HAL_MEDIA_TYPE;
+    
+    $httpProvider.interceptors.push("RestInterceptor");
     
     if (Security.csrf) {
       
@@ -51,10 +56,10 @@
   /**
    * Extends $resource:
    * <ul>
-   * <li>The <code>query</code> method is not expecting an array anymore</li>
-   * <li>New <code>create</code> and <code>update</code> methods (respectively <code>POST</code> and <code>PUT</code>)</li>
-   * <li>The <code>save</code> method delegates to <code>create</code> or <code>update</code> methods,
-   *     depending on whether the resource has an <code>id</code> property.</li>
+   * <li>The <code>query</code> method is not expecting an array anymore.</li>
+   * <li>New <code>create</code> and <code>update</code> methods (respectively <code>POST</code> and <code>PUT</code>).</li>
+   * <li>The <code>save</code> method delegates to <code>create</code> or <code>update</code> methods, depending on whether the resource has an
+   * <code>id</code> property.</li>
    * </ul>
    */
   .factory("RestResource", ["$resource",
@@ -80,10 +85,110 @@
     };
     
   }])
+  
+  /**
+   * Intercepts HAL responses, adds:
+   * <ol>
+   * <li><code>$link(rel)</code> method that returns an object with:
+   * <ul>
+   * <li><code>fetch(attributeName, successCallback, errorCallback)</code> method, where <code>attributeName</code> is defaulted to
+   * <code>"href"</code> and <code>successCallback</code> is mandatory.</li>
+   * <li><code>get(attributeName)</code> method.</li>
+   * </ul>
+   * </li>
+   * <li><code>$links(rel)</code> method that returns an array of objects defined in #1.</li>
+   * </ol>
+   */
+  .factory("RestInterceptor", ["$injector",
+  function($injector) {
+    
+    var linkFactory = function(rel, link) {
+      return {
+        
+        fetch: function(a1, a2, a3) {
+          
+          var attributeName, successCallback, errorCallback;
+          
+          switch (arguments.length) {          
+          case 3:
+            errorCallback = a3;
+            // fallthrough            
+          case 2:
+            if (angular.isFunction(a1)) {
+              errorCallback = a2;
+              // fallthrough
+            } else {
+              attributeName = a1;
+              successCallback = a2;
+              break;
+            }
+          case 1:
+            attributeName = "href";
+            successCallback = a1;
+            break;            
+          default:
+            throw "Expected 1 to 3 arguments [name, successCallback, errorCallback], got " + arguments.length;
+          }
+          
+          if (link.hasOwnProperty(attributeName)) {
+            if (!angular.isFunction(successCallback)) {
+              throw "Success callback missing to fetch attribute '" + attributeName + "' of link '" + rel + "'";
+            }
+            $injector.get("$http").get(link[attributeName]).then(function(response) {
+              successCallback(response.data, response.headers);
+            }, errorCallback);
+          } else {
+            throw "Attribute '" + attributeName + "' of link '" + rel + "' not found";
+          }
+        },
+        
+        get: function(attributeName) {
+          if (link.hasOwnProperty(attributeName)) {
+            return link[attributeName];
+          } else {
+            throw "Attribute '" + attributeName + "' of link '" + rel + "' not found";
+          }
+        }
+        
+      };
+    };
+    
+    return {
+      
+      response: function(response) {
+        
+        if (response.headers(CONTENT_TYPE_HEADER).indexOf(HAL_MEDIA_TYPE) >= 0) {
+          
+          var data = response.data;
+          
+          data.$link = function(rel) {
+            if (data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel])) {
+              return linkFactory(rel, data._links[rel]);
+            } else {
+              throw "Link '" + rel + "' not found";
+            }
+          };
+          
+          data.$links = function(rel) {
+            if (data._links.hasOwnProperty(rel) && angular.isArray(data._links[rel])) {
+              return data._links[rel].map(function(link, i) {
+                return linkFactory(rel + "[" + i + "]", link);
+              });
+            } else {
+              throw "Links '" + rel + "' not found";
+            }
+          };
+          
+        }        
+        return response;
+      }
+    
+    }
+  }])
 
   /**
-   * Initializer, provides a <code>config</code> method to be called in a configuration block,
-   * and a <code>run</code> method to be called in a run block.
+   * Initializer, provides a <code>config</code> method to be called in a configuration block, and a <code>run</code> method to be called in a run
+   * block.
    */
   .provider("jrestful", [
   function() {

@@ -47,8 +47,8 @@
   angular.module("jrestfulAuth", ["jrestfulCore"])
   
   /**
-   * Encapsulates the current user to implement the <code>hasRole</code>, <code>hasAnyRole</code>,
-   * <code>isAnonymous</code> and <code>isAuthenticated</code> methods.
+   * Encapsulates the current user to implement the <code>hasRole</code>, <code>hasAnyRole</code>, <code>isAnonymous</code> and
+   * <code>isAuthenticated</code> methods.
    */
   .factory("UserProfile", ["$q", "User",
   function($q, User) {
@@ -154,8 +154,8 @@
   }])
 
   /**
-   * Initializer, extends <code>jrestfulProvider</code> <code>config</code> method to be called in a configuration block,
-   * and <code>jrestfulProvider</code> <code>run</code> method to be called in a run block.
+   * Initializer, extends <code>jrestfulProvider</code> <code>config</code> method to be called in a configuration block, and
+   * <code>jrestfulProvider</code> <code>run</code> method to be called in a run block.
    */
   .config(["jrestfulProvider",
   function(jrestfulProvider) {
