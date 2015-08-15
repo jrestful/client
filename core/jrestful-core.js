@@ -91,8 +91,7 @@
    * <ol>
    * <li><code>$link(rel)</code> method that returns an object with:
    * <ul>
-   * <li><code>fetch(attributeName, successCallback, errorCallback)</code> method, where <code>attributeName</code> is defaulted to
-   * <code>"href"</code> and <code>successCallback</code> is mandatory.</li>
+   * <li><code>fetch(attributeName)</code> method, where <code>attributeName</code> is defaulted to <code>"href"</code>.</li>
    * <li><code>get(attributeName)</code> method.</li>
    * </ul>
    * </li>
@@ -105,44 +104,19 @@
     var linkFactory = function(rel, link) {
       return {
         
-        fetch: function(a1, a2, a3) {
-          
-          var attributeName, successCallback, errorCallback;
-          
-          switch (arguments.length) {          
-          case 3:
-            errorCallback = a3;
-            // fallthrough            
-          case 2:
-            if (angular.isFunction(a1)) {
-              errorCallback = a2;
-              // fallthrough
-            } else {
-              attributeName = a1;
-              successCallback = a2;
-              break;
-            }
-          case 1:
-            attributeName = "href";
-            successCallback = a1;
-            break;            
-          default:
-            throw "Expected 1 to 3 arguments [name, successCallback, errorCallback], got " + arguments.length;
-          }
-          
+        // TODO factorize fetch and get functions
+        
+        fetch: function(attributeName) {
+          attributeName = attributeName || "href";
           if (link.hasOwnProperty(attributeName)) {
-            if (!angular.isFunction(successCallback)) {
-              throw "Success callback missing to fetch attribute '" + attributeName + "' of link '" + rel + "'";
-            }
-            $injector.get("$http").get(link[attributeName]).then(function(response) {
-              successCallback(response.data, response.headers);
-            }, errorCallback);
+            return $injector.get("$http").get(link[attributeName]);            
           } else {
             throw "Attribute '" + attributeName + "' of link '" + rel + "' not found";
           }
         },
         
         get: function(attributeName) {
+          attributeName = attributeName || "href";
           if (link.hasOwnProperty(attributeName)) {
             return link[attributeName];
           } else {
@@ -178,6 +152,8 @@
               throw "Links '" + rel + "' not found";
             }
           };
+          
+          // TODO add an $embedded function
           
         }        
         return response;
