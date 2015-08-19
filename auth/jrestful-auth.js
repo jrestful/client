@@ -24,9 +24,9 @@
     }
     
     var routerErrorHandler = function(errorCode) {
-      if (rejection == Access.UNAUTHORIZED) {
+      if (errorCode == Access.UNAUTHORIZED) {
         $location.path(Security.auth.unauthorizedPath);
-      } else if (rejection == Access.FORBIDDEN) {
+      } else if (errorCode == Access.FORBIDDEN) {
         $location.path(Security.auth.forbiddenPath);
       }
     };
