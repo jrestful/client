@@ -20,7 +20,7 @@
     var $location = $injector.get("$location");
     
     if (!Security.auth || !Security.auth.unauthorizedPath || !Security.auth.forbiddenPath) {
-      throw "Security.auth must have following properties: unauthorizedPath, forbiddenPath";
+      throw new Error("Security.auth must have following properties: unauthorizedPath, forbiddenPath");
     }
     
     var routerErrorHandler = function(errorCode) {
