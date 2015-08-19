@@ -20,7 +20,7 @@
     if (Security.csrf) {
       
       if (!Security.csrf.headerName || !Security.csrf.cookieName) {
-        throw "Security.csrf must have following properties: headerName, cookieName";
+        throw new Error("Security.csrf must have following properties: headerName, cookieName");
       }
       
       $httpProvider.defaults.xsrfHeaderName = Security.csrf.headerName;
@@ -112,7 +112,7 @@
           if (link.hasOwnProperty(attributeName)) {
             return $injector.get("$http").get(link[attributeName]);            
           } else {
-            throw "Attribute '" + attributeName + "' of link '" + rel + "' not found";
+            throw new Error("Attribute '" + attributeName + "' of link '" + rel + "' not found");
           }
         },
         
@@ -121,7 +121,7 @@
           if (link.hasOwnProperty(attributeName)) {
             return link[attributeName];
           } else {
-            throw "Attribute '" + attributeName + "' of link '" + rel + "' not found";
+            throw new Error("Attribute '" + attributeName + "' of link '" + rel + "' not found");
           }
         }
         
@@ -140,7 +140,7 @@
             if (data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel])) {
               return linkFactory(rel, data._links[rel]);
             } else {
-              throw "Link '" + rel + "' not found";
+              throw new Error("Link '" + rel + "' not found");
             }
           };
           
@@ -150,7 +150,7 @@
                 return linkFactory(rel + "[" + i + "]", link);
               });
             } else {
-              throw "Links '" + rel + "' not found";
+              throw new Error("Links '" + rel + "' not found");
             }
           };
           
