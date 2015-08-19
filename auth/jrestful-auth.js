@@ -159,23 +159,7 @@
    */
   .config(["jrestfulProvider",
   function(jrestfulProvider) {
-    
-    var configCallfront = jrestfulProvider.config;    
-    jrestfulProvider.config = function($injector) {
-      configCallfront($injector);
-      config($injector);
-    };
-    
-    var runCallfront = jrestfulProvider.$get().run;
-    jrestfulProvider.$get = function() {
-      return {
-        run: function($injector) {
-          runCallfront($injector);
-          run($injector);
-        }
-      }
-    };
-    
+    jrestfulProvider.$extend(config, run);
   }]);
   
 })(angular);
