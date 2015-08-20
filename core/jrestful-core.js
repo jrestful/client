@@ -156,11 +156,11 @@
           
           // TODO add an $embedded function
           
-        }        
+        }
         return response;
       }
     
-    }
+    };
   }])
 
   /**
@@ -204,7 +204,7 @@
         };
       }
       
-    }
+    };
     
   }]);
   
