@@ -132,7 +132,8 @@
       
       response: function(response) {
         
-        if (response.headers(CONTENT_TYPE_HEADER).indexOf(HAL_MEDIA_TYPE) >= 0) {
+        var contentType = response.headers(CONTENT_TYPE_HEADER);
+        if (contentType && contentType.indexOf(HAL_MEDIA_TYPE) >= 0) {
           
           var data = response.data;
           
