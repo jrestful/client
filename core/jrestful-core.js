@@ -92,11 +92,12 @@
    * <ol>
    * <li><code>$link(rel)</code> method that returns an object with:
    * <ul>
-   * <li><code>fetch(attributeName)</code> method, where <code>attributeName</code> is defaulted to <code>"href"</code>.</li>
-   * <li><code>get(attributeName)</code> method.</li>
+   * <li><code>fetch(attr)</code> method, where <code>attr</code> is defaulted to <code>"href"</code>.</li>
+   * <li><code>get(attr)</code> method, where <code>attr</code> is defaulted to <code>"href"</code>.</li>
    * </ul>
    * </li>
    * <li><code>$links(rel)</code> method that returns an array of objects defined in #1.</li>
+   * <li><code>$embedded()</code> method that returns the embedded resources after having handled their links as defined in #1 and #2.</li>
    * </ol>
    */
   .factory("RestInterceptor", ["$injector",
@@ -105,58 +106,78 @@
     var linkFactory = function(rel, link) {
       return {
         
-        // TODO factorize fetch and get functions
-        
-        fetch: function(attributeName) {
-          attributeName = attributeName || "href";
-          if (link.hasOwnProperty(attributeName)) {
-            return $injector.get("$http").get(link[attributeName]);            
-          } else {
-            throw new Error("Attribute '" + attributeName + "' of link '" + rel + "' not found");
-          }
+        fetch: function(attr) {
+          return this.get(attr, true);
         },
         
-        get: function(attributeName) {
-          attributeName = attributeName || "href";
-          if (link.hasOwnProperty(attributeName)) {
-            return link[attributeName];
+        get: function(attr, fetch) {
+          attr = attr || "href";
+          if (link.hasOwnProperty(attr)) {
+            return fetch ? $injector.get("$http").get(link[attr]) : link[attr];
           } else {
-            throw new Error("Attribute '" + attributeName + "' of link '" + rel + "' not found");
+            throw new Error("Attribute '" + attr + "' of link '" + rel + "' not found");
           }
         }
         
       };
     };
     
+    var handleLinks = function(data) {
+    
+      var linkCache = {};
+      var linksCache = {};
+      
+      data.$link = function(rel) {
+        if (!linkCache.hasOwnProperty(rel)) {
+          if (data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel])) {
+            linkCache[rel] = linkFactory(rel, data._links[rel]);
+          } else {
+            throw new Error("Link '" + rel + "' not found");
+          }
+        }
+        return linkCache[rel];
+      };
+      
+      data.$links = function(rel) {
+        if (!linksCache.hasOwnProperty(rel)) {
+          if (data._links.hasOwnProperty(rel) && angular.isArray(data._links[rel])) {
+            linksCache[rel] = data._links[rel].map(function(link, i) {
+              return linkFactory(rel + "[" + i + "]", link);
+            });
+          } else {
+            throw new Error("Links '" + rel + "' not found");
+          }
+        }
+        return linksCache[rel];
+      };
+          
+    };
+    
+    var handleEmbedded = function(data) {
+      if (data._embedded) {
+          
+        var handled = false;
+        data.$embedded = function() {
+          if (!handled) {
+            angular.forEach(data._embedded, function(data) {
+              handleLinks(data);
+            });
+            handled = true;
+          }
+          return data._embedded;
+        };
+        
+      }
+    
+    };
+    
     return {
       
-      response: function(response) {
-        
+      response: function(response) {        
         var contentType = response.headers(CONTENT_TYPE_HEADER);
         if (contentType && contentType.indexOf(HAL_MEDIA_TYPE) >= 0) {
-          
-          var data = response.data;
-          
-          data.$link = function(rel) {
-            if (data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel])) {
-              return linkFactory(rel, data._links[rel]);
-            } else {
-              throw new Error("Link '" + rel + "' not found");
-            }
-          };
-          
-          data.$links = function(rel) {
-            if (data._links.hasOwnProperty(rel) && angular.isArray(data._links[rel])) {
-              return data._links[rel].map(function(link, i) {
-                return linkFactory(rel + "[" + i + "]", link);
-              });
-            } else {
-              throw new Error("Links '" + rel + "' not found");
-            }
-          };
-          
-          // TODO add an $embedded function
-          
+          handleLinks(response.data);
+          handleEmbedded(response.data);
         }
         return response;
       }
