@@ -23,20 +23,12 @@
       throw new Error("Security.auth must have following properties: unauthorizedPath, forbiddenPath");
     }
     
-    var routerErrorHandler = function(errorCode) {
-      if (errorCode == Access.UNAUTHORIZED) {
+    $rootScope.$on("$stateChangeError", function(event, toState, toParams, fromState, fromParams, error) {
+      if (error == Access.UNAUTHORIZED) {
         $location.path(Security.auth.unauthorizedPath);
-      } else if (errorCode == Access.FORBIDDEN) {
+      } else if (error == Access.FORBIDDEN) {
         $location.path(Security.auth.forbiddenPath);
       }
-    };
-    
-    $rootScope
-    .$on("$stateChangeError", function(event, toState, toParams, fromState, fromParams, error) {
-      routerErrorHandler(error);
-    })
-    .$on("$routeChangeError", function(event, current, previous, rejection) {
-      routerErrorHandler(rejection);
     });
     
   };
