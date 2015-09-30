@@ -194,23 +194,23 @@
     
     return {
       
-      $extend: function(config, run) {
+      $extend: function(extendedConfig, extendedRun) {
         
-        if (typeof config === "function") {
-          var callfront = this.config;
+        if (typeof extendedConfig === "function") {
+          var originalConfig = this.config;
           this.config = function($injector) {
-            callfront($injector);
-            config($injector);
+            originalConfig($injector);
+            extendedConfig($injector);
           };
         }
         
-        if (typeof run === "function") {
-          var callfront = this.$get().run;
+        if (typeof extendedRun === "function") {
+          var originalRun = this.$get().run;
           this.$get = function() {
             return {
               run: function($injector) {
-                callfront($injector);
-                run($injector);
+                originalRun($injector);
+                extendedRun($injector);
               }
             };
           };
