@@ -45,33 +45,41 @@
   .factory("UserProfile", ["$q", "User",
   function($q, User) {
   
-    var deferred = $q.defer();
-  
-    User.profile(function(userProfile) {
-      deferred.resolve({
-  
-        hasRole: function(role) {
-          return userProfile.roles.indexOf(role) >= 0;
-        },
-  
-        hasAnyRole: function(roles) {
-          return !!userProfile.roles.filter(function(role) {
-            return roles.indexOf(role) >= 0;
-          }).length;
-        },
-  
-        isAnonymous: function() {
-          return userProfile.anonymous;
-        },
-  
-        isAuthenticated: function() {
-          return !userProfile.anonymous;
-        }
-  
+    var userProfile = {};
+    
+    var fetchUserProfile = function() {
+      var deferred = $q.defer();
+      User.profile(function(response) {
+        
+        deferred.resolve(angular.extend(userProfile, response, {
+          
+          $refresh: fetchUserProfile,
+          
+          $hasRole: function(role) {
+            return userProfile.roles.indexOf(role) >= 0;
+          },
+    
+          $hasAnyRole: function(roles) {
+            return !!userProfile.roles.filter(function(role) {
+              return roles.indexOf(role) >= 0;
+            }).length;
+          },
+    
+          $isAnonymous: function() {
+            return userProfile.anonymous;
+          },
+    
+          $isAuthenticated: function() {
+            return !userProfile.anonymous;
+          }
+          
+        }));
+        
       });
-    });
+      return deferred.promise;
+    };
   
-    return deferred.promise;
+    return fetchUserProfile();
   
   }])
   
@@ -90,9 +98,9 @@
       hasRole: function(role) {
         var deferred = $q.defer();
         UserProfile.then(function(userProfile) {
-          if (userProfile.hasRole(role)) {
+          if (userProfile.$hasRole(role)) {
             deferred.resolve(Access.OK);
-          } else if (userProfile.isAnonymous()) {
+          } else if (userProfile.$isAnonymous()) {
             deferred.reject(Access.UNAUTHORIZED);
           } else {
             deferred.reject(Access.FORBIDDEN);
@@ -104,9 +112,9 @@
       hasAnyRole: function(roles) {
         var deferred = $q.defer();
         UserProfile.then(function(userProfile) {
-          if (userProfile.hasAnyRole(roles)) {
+          if (userProfile.$hasAnyRole(roles)) {
             deferred.resolve(Access.OK);
-          } else if (userProfile.isAnonymous()) {
+          } else if (userProfile.$isAnonymous()) {
             deferred.reject(Access.UNAUTHORIZED);
           } else {
             deferred.reject(Access.FORBIDDEN);
@@ -118,7 +126,7 @@
       isAnonymous: function() {
         var deferred = $q.defer();
         UserProfile.then(function(userProfile) {
-          if (userProfile.isAnonymous()) {
+          if (userProfile.$isAnonymous()) {
             deferred.resolve(Access.OK);
           } else {
             deferred.reject(Access.FORBIDDEN);
@@ -130,7 +138,7 @@
       isAuthenticated: function() {
         var deferred = $q.defer();
         UserProfile.then(function(userProfile) {
-          if (userProfile.isAuthenticated()) {
+          if (userProfile.$isAuthenticated()) {
             deferred.resolve(Access.OK);
           } else {
             deferred.reject(Access.UNAUTHORIZED);
