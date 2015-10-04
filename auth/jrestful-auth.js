@@ -51,6 +51,12 @@
       var deferred = $q.defer();
       User.profile(function(response) {
         
+        for (var prop in userProfile) {
+          if (userProfile.hasOwnProperty(prop)) {
+            delete userProfile[prop];
+          }
+        }
+        
         deferred.resolve(angular.extend(userProfile, response, {
           
           $refresh: fetchUserProfile,
