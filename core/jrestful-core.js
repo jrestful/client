@@ -90,12 +90,14 @@
   /**
    * Intercepts HAL responses, adds:
    * <ol>
+   * <li><code>$hasLink(rel)</code> method.</li>
    * <li><code>$link(rel)</code> method that returns an object with:
    * <ul>
    * <li><code>fetch(attr)</code> method, where <code>attr</code> is defaulted to <code>"href"</code>.</li>
    * <li><code>get(attr)</code> method, where <code>attr</code> is defaulted to <code>"href"</code>.</li>
    * </ul>
    * </li>
+   * <li><code>$hasLinks(rel)</code> method.</li>
    * <li><code>$links(rel)</code> method that returns an array of objects defined in #1.</li>
    * <li><code>$embedded()</code> method that returns the embedded resources after having handled their links as defined in #1 and #2.</li>
    * </ol>
@@ -127,9 +129,13 @@
       var linkCache = {};
       var linksCache = {};
       
+      data.$hasLink = function(rel) {
+        return data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel]);
+      };
+      
       data.$link = function(rel) {
         if (!linkCache.hasOwnProperty(rel)) {
-          if (data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel])) {
+          if (data.$hasLink(rel)) {
             linkCache[rel] = linkFactory(rel, data._links[rel]);
           } else {
             throw new Error("Link '" + rel + "' not found");
@@ -138,9 +144,13 @@
         return linkCache[rel];
       };
       
+      data.$hasLinks = function(rel) {
+        return data._links.hasOwnProperty(rel) && angular.isArray(data._links[rel]);
+      };
+      
       data.$links = function(rel) {
         if (!linksCache.hasOwnProperty(rel)) {
-          if (data._links.hasOwnProperty(rel) && angular.isArray(data._links[rel])) {
+          if (data.$hasLinks(rel)) {
             linksCache[rel] = data._links[rel].map(function(link, i) {
               return linkFactory(rel + "[" + i + "]", link);
             });
