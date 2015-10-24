@@ -39,17 +39,17 @@
   angular.module("jrestfulAuth", ["jrestfulCore"])
   
   /**
-   * Encapsulates the current user to implement the <code>hasRole</code>, <code>hasAnyRole</code>, <code>isAnonymous</code> and
+   * Encapsulates the current user profile to implement the <code>hasRole</code>, <code>hasAnyRole</code>, <code>isAnonymous</code> and
    * <code>isAuthenticated</code> methods.
    */
-  .factory("UserProfile", ["$q", "User",
-  function($q, User) {
+  .factory("UserProfile", ["$q", "Auth",
+  function($q, Auth) {
   
     var userProfile = {};
     
     var fetchUserProfile = function() {
       var deferred = $q.defer();
-      User.profile(function(response) {
+      Auth.profile(function(response) {
         
         for (var prop in userProfile) {
           if (userProfile.hasOwnProperty(prop)) {
