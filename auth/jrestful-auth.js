@@ -17,17 +17,17 @@
     var Security = $injector.has("Security") ? $injector.get("Security") : {};
     var $rootScope = $injector.get("$rootScope");
     var Access = $injector.get("Access");
-    var $location = $injector.get("$location");
+    var $state = $injector.get("$state");
     
-    if (!Security.auth || !Security.auth.unauthorizedPath || !Security.auth.forbiddenPath) {
-      throw new Error("Security.auth must have following properties: unauthorizedPath, forbiddenPath");
+    if (!Security.auth || !Security.auth.unauthorizedState || !Security.auth.forbiddenState) {
+      throw new Error("Security.auth must have following properties: unauthorizedState, forbiddenState");
     }
     
     $rootScope.$on("$stateChangeError", function(event, toState, toParams, fromState, fromParams, error) {
       if (error == Access.UNAUTHORIZED) {
-        $location.path(Security.auth.unauthorizedPath);
+        $state.go(Security.auth.unauthorizedState);
       } else if (error == Access.FORBIDDEN) {
-        $location.path(Security.auth.forbiddenPath);
+        $state.go(Security.auth.forbiddenState);
       }
     });
     
