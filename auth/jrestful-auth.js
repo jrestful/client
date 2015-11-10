@@ -49,7 +49,7 @@
     
     var fetchUserProfile = function() {
       var deferred = $q.defer();
-      Auth.profile(function(response) {
+      Auth.getProfile(function(response) {
         
         for (var prop in userProfile) {
           if (userProfile.hasOwnProperty(prop)) {
