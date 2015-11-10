@@ -42,8 +42,8 @@
    * Encapsulates the current user profile to implement the <code>hasRole</code>, <code>hasAnyRole</code>, <code>isAnonymous</code> and
    * <code>isAuthenticated</code> methods.
    */
-  .factory("UserProfile", ["$q", "Auth",
-  function($q, Auth) {
+  .factory("UserProfile", ["$q", "$rootScope", "Auth",
+  function($q, $rootScope, Auth) {
   
     var userProfile = {};
     
@@ -80,6 +80,8 @@
           }
           
         }));
+        
+        $rootScope.$broadcast("userProfileFetched", userProfile);
         
       });
       return deferred.promise;
