@@ -1,4 +1,4 @@
-(function(angular, undefined) {
+(function (angular, undefined) {
     
   "use strict";
   
@@ -8,7 +8,7 @@
   /**
    * Called in a configuration block, $injector belongs to the calling module.
    */
-  var config = function($injector) {
+  var config = function ($injector) {
     
     var Security = $injector.has("Security") ? $injector.get("Security") : {};
     var $httpProvider = $injector.get("$httpProvider");
@@ -27,11 +27,11 @@
       $httpProvider.defaults.xsrfCookieName = Security.csrf.cookieName;
       
       // credits to https://gist.github.com/jed/982883:
-      var uuid = function(e){ return e ? (e ^ Math.random() * 16 >> e/4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, uuid); };
+      var uuid = function (e){ return e ? (e ^ Math.random() * 16 >> e/4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, uuid); };
       
-      $httpProvider.interceptors.push(function() {
+      $httpProvider.interceptors.push(function () {
         return {
-          request: function(config) {
+          request: function (config) {
             document.cookie = Security.csrf.cookieName + "=" + uuid();
             return config;
           }
@@ -45,7 +45,7 @@
   /**
    * Called in a run block, $injector belongs to the calling module.
    */
-  var run = function($injector) {
+  var run = function ($injector) {
     // no-op
   };
   
@@ -64,9 +64,9 @@
    * </ul>
    */
   .factory("RestResource", ["$resource",
-  function($resource) {
+  function ($resource) {
     
-    return function(url, paramDefaults, actions, options) {
+    return function (url, paramDefaults, actions, options) {
       
       var extendedActions = {
         query: { method: "GET" },
@@ -76,7 +76,7 @@
       
       var RestResource = $resource(url, paramDefaults, angular.extend(extendedActions, actions), options);
       
-      RestResource.prototype.$save = function() {
+      RestResource.prototype.$save = function () {
         var fn = this.id ? this.$update : this.$create;
         return fn.apply(this, arguments);
       };
@@ -103,16 +103,16 @@
    * </ol>
    */
   .factory("RestInterceptor", ["$injector",
-  function($injector) {
+  function ($injector) {
     
-    var linkFactory = function(rel, link) {
+    var linkFactory = function (rel, link) {
       return {
         
-        fetch: function(attr) {
+        fetch: function (attr) {
           return this.get(attr, true);
         },
         
-        get: function(attr, fetch) {
+        get: function (attr, fetch) {
           attr = attr || "href";
           if (link.hasOwnProperty(attr)) {
             return fetch ? $injector.get("$http").get(link[attr]) : link[attr];
@@ -124,16 +124,16 @@
       };
     };
     
-    var handleLinks = function(data) {
+    var handleLinks = function (data) {
     
       var linkCache = {};
       var linksCache = {};
       
-      data.$hasLink = function(rel) {
+      data.$hasLink = function (rel) {
         return data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel]);
       };
       
-      data.$link = function(rel) {
+      data.$link = function (rel) {
         if (!linkCache.hasOwnProperty(rel)) {
           if (data.$hasLink(rel)) {
             linkCache[rel] = linkFactory(rel, data._links[rel]);
@@ -144,14 +144,14 @@
         return linkCache[rel];
       };
       
-      data.$hasLinks = function(rel) {
+      data.$hasLinks = function (rel) {
         return data._links.hasOwnProperty(rel) && angular.isArray(data._links[rel]);
       };
       
-      data.$links = function(rel) {
+      data.$links = function (rel) {
         if (!linksCache.hasOwnProperty(rel)) {
           if (data.$hasLinks(rel)) {
-            linksCache[rel] = data._links[rel].map(function(link, i) {
+            linksCache[rel] = data._links[rel].map(function (link, i) {
               return linkFactory(rel + "[" + i + "]", link);
             });
           } else {
@@ -163,13 +163,13 @@
           
     };
     
-    var handleEmbedded = function(data) {
+    var handleEmbedded = function (data) {
       if (data._embedded) {
           
         var handled = false;
-        data.$embedded = function() {
+        data.$embedded = function () {
           if (!handled) {
-            angular.forEach(data._embedded, function(data) {
+            angular.forEach(data._embedded, function (data) {
               handleLinks(data);
             });
             handled = true;
@@ -183,7 +183,7 @@
     
     return {
       
-      response: function(response) {        
+      response: function (response) {        
         var contentType = response.headers(CONTENT_TYPE_HEADER);
         if (contentType && contentType.indexOf(HAL_MEDIA_TYPE) >= 0) {
           handleLinks(response.data);
@@ -200,15 +200,15 @@
    * block.
    */
   .provider("jrestful", [
-  function() {
+  function () {
     
     return {
       
-      $extend: function(extendedConfig, extendedRun) {
+      $extend: function (extendedConfig, extendedRun) {
         
         if (typeof extendedConfig === "function") {
           var originalConfig = this.config;
-          this.config = function($injector) {
+          this.config = function ($injector) {
             originalConfig($injector);
             extendedConfig($injector);
           };
@@ -216,9 +216,9 @@
         
         if (typeof extendedRun === "function") {
           var originalRun = this.$get().run;
-          this.$get = function() {
+          this.$get = function () {
             return {
-              run: function($injector) {
+              run: function ($injector) {
                 originalRun($injector);
                 extendedRun($injector);
               }
@@ -230,7 +230,7 @@
       
       config: config,
       
-      $get: function() {
+      $get: function () {
         return {
           run: run
         };

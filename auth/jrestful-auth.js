@@ -1,18 +1,18 @@
-(function(angular, undefined) {
+(function (angular, undefined) {
   
   "use strict";
   
   /**
    * Called in a configuration block, $injector belongs to the calling module.
    */
-  var config = function($injector) {
+  var config = function ($injector) {
     // no-op
   };
   
   /**
    * Called in a run block, $injector belongs to the calling module.
    */
-  var run = function($injector) {
+  var run = function ($injector) {
     
     var Security = $injector.has("Security") ? $injector.get("Security") : {};
     var $rootScope = $injector.get("$rootScope");
@@ -23,7 +23,7 @@
       throw new Error("Security.auth must have following properties: unauthorizedState, forbiddenState");
     }
     
-    $rootScope.$on("$stateChangeError", function(event, toState, toParams, fromState, fromParams, error) {
+    $rootScope.$on("$stateChangeError", function (event, toState, toParams, fromState, fromParams, error) {
       if (error == Access.UNAUTHORIZED) {
         $state.go(Security.auth.unauthorizedState);
       } else if (error == Access.FORBIDDEN) {
@@ -43,13 +43,13 @@
    * <code>isAuthenticated</code> methods.
    */
   .factory("UserProfile", ["$q", "$rootScope", "Auth",
-  function($q, $rootScope, Auth) {
+  function ($q, $rootScope, Auth) {
   
     var userProfile = {};
     
-    var fetchUserProfile = function() {
+    var fetchUserProfile = function () {
       var deferred = $q.defer();
-      Auth.getProfile(function(response) {
+      Auth.getProfile(function (response) {
         
         for (var prop in userProfile) {
           if (userProfile.hasOwnProperty(prop)) {
@@ -61,21 +61,21 @@
           
           $refresh: fetchUserProfile,
           
-          $hasRole: function(role) {
+          $hasRole: function (role) {
             return userProfile.roles.indexOf(role) >= 0;
           },
     
-          $hasAnyRole: function(roles) {
-            return !!userProfile.roles.filter(function(role) {
+          $hasAnyRole: function (roles) {
+            return !!userProfile.roles.filter(function (role) {
               return roles.indexOf(role) >= 0;
             }).length;
           },
     
-          $isAnonymous: function() {
+          $isAnonymous: function () {
             return userProfile.anonymous;
           },
     
-          $isAuthenticated: function() {
+          $isAuthenticated: function () {
             return !userProfile.anonymous;
           }
           
@@ -95,7 +95,7 @@
    * Resolves or rejects a promise depending on the current user profile.
    */
   .factory("Access", ["$q", "UserProfile",
-  function($q, UserProfile) {
+  function ($q, UserProfile) {
   
     var Access = {
   
@@ -103,9 +103,9 @@
       UNAUTHORIZED: 401,
       FORBIDDEN: 403,
   
-      hasRole: function(role) {
+      hasRole: function (role) {
         var deferred = $q.defer();
-        UserProfile.then(function(userProfile) {
+        UserProfile.then(function (userProfile) {
           if (userProfile.$hasRole(role)) {
             deferred.resolve(Access.OK);
           } else if (userProfile.$isAnonymous()) {
@@ -117,9 +117,9 @@
         return deferred.promise;
       },
   
-      hasAnyRole: function(roles) {
+      hasAnyRole: function (roles) {
         var deferred = $q.defer();
-        UserProfile.then(function(userProfile) {
+        UserProfile.then(function (userProfile) {
           if (userProfile.$hasAnyRole(roles)) {
             deferred.resolve(Access.OK);
           } else if (userProfile.$isAnonymous()) {
@@ -131,9 +131,9 @@
         return deferred.promise;
       },
   
-      isAnonymous: function() {
+      isAnonymous: function () {
         var deferred = $q.defer();
-        UserProfile.then(function(userProfile) {
+        UserProfile.then(function (userProfile) {
           if (userProfile.$isAnonymous()) {
             deferred.resolve(Access.OK);
           } else {
@@ -143,9 +143,9 @@
         return deferred.promise;
       },
   
-      isAuthenticated: function() {
+      isAuthenticated: function () {
         var deferred = $q.defer();
-        UserProfile.then(function(userProfile) {
+        UserProfile.then(function (userProfile) {
           if (userProfile.$isAuthenticated()) {
             deferred.resolve(Access.OK);
           } else {
@@ -166,7 +166,7 @@
    * <code>jrestfulProvider</code> <code>run</code> method to be called in a run block.
    */
   .config(["jrestfulProvider",
-  function(jrestfulProvider) {
+  function (jrestfulProvider) {
     jrestfulProvider.$extend(config, run);
   }]);
   
