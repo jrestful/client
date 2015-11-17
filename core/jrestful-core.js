@@ -50,9 +50,9 @@
   };
   
   /**
-   * jrestfulCore module, requires <code>ngResource</code>.
+   * jrestful.core module, requires <code>ngResource</code>.
    */
-  angular.module("jrestfulCore", ["ngResource"])
+  angular.module("jrestful.core", ["ngResource"])
   
   /**
    * Extends $resource:

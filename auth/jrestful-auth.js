@@ -34,9 +34,9 @@
   };
   
   /**
-   * jrestfulAuth module, requires <code>jrestulCore</code>.
+   * jrestful.auth module, requires <code>jrestul.core</code>.
    */
-  angular.module("jrestfulAuth", ["jrestfulCore"])
+  angular.module("jrestful.auth", ["jrestful.core"])
   
   /**
    * Encapsulates the current user profile to implement the <code>hasRole</code>, <code>hasAnyRole</code>, <code>isAnonymous</code> and
