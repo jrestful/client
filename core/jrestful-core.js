@@ -98,8 +98,8 @@
    * </ul>
    * </li>
    * <li><code>$hasLinks(rel)</code> method.</li>
-   * <li><code>$links(rel)</code> method that returns an array of objects defined in #1.</li>
-   * <li><code>$embedded()</code> method that returns the embedded resources after having handled their links as defined in #1 and #2.</li>
+   * <li><code>$links(rel)</code> method that returns an array of objects defined in #2.</li>
+   * <li><code>$embedded()</code> method that returns the embedded resources after having handled their links as defined in #2 and #4.</li>
    * </ol>
    */
   .factory("RestInterceptor", ["$injector",
