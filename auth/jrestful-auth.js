@@ -39,8 +39,8 @@
   angular.module("jrestful.auth", ["jrestful.core"])
   
   /**
-   * Encapsulates the current user profile to implement the <code>hasRole</code>, <code>hasAnyRole</code>, <code>isAnonymous</code> and
-   * <code>isAuthenticated</code> methods.
+   * Encapsulates the current user profile to implement the <code$>hasRole</code>, <code>$hasAnyRole</code>, <code>$isAnonymous</code>,
+   * <code>$isAuthenticated</code> and <code>$refresh</code> methods.
    */
   .factory("UserProfile", ["$q", "$rootScope", "Auth",
   function ($q, $rootScope, Auth) {
