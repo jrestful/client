@@ -58,7 +58,7 @@
    * Extends $resource:
    * <ul>
    * <li>The <code>query</code> method is not expecting an array anymore.</li>
-   * <li>New <code>create</code> and <code>update</code> methods (respectively <code>POST</code> and <code>PUT</code>).</li>
+   * <li>New <code>create</code>, <code>update</code> and <code>remove</code> methods (respectively <code>POST</code>, <code>PUT</code> and <code>DELETE</code>).</li>
    * <li>The <code>save</code> method delegates to <code>create</code> or <code>update</code> methods, depending on whether the resource has an
    * <code>id</code> property.</li>
    * </ul>
@@ -71,7 +71,8 @@
       var extendedActions = {
         query: { method: "GET" },
         create: { method: "POST" },
-        update: { method: "PUT" }
+        update: { method: "PUT" },
+        remove: { method: "DELETE" }
       };
       
       var RestResource = $resource(url, paramDefaults, angular.extend(extendedActions, actions), options);
