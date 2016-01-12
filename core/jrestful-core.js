@@ -90,7 +90,7 @@
           output = ((output << 5) - output) + c;
           output |= 0;
         }
-        return output;
+        return output.toString();
       }
       
     };
