@@ -55,6 +55,48 @@
   angular.module("jrestful.core", ["ngResource"])
   
   /**
+   * Strings utilities.
+   */
+  .factory("StringUtils", [
+  function () {
+    return {
+      
+      startsWith: function (haystack, needle) {
+        return haystack.lastIndexOf(needle, 0) === 0;
+      },
+      
+      endsWith: function (haystack, needle) {
+        return haystack.substr(-needle.length) === needle;
+      },
+      
+      fromDate: function (date) {
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        var day = date.getDate();
+        return year + (month < 10 ? "0" : "") + month + (day < 10 ? "0" : "") + day;
+      },
+    
+      toDate: function (string) {
+        var year = parseInt(string.substring(0, 4), 10);
+        var month = parseInt(string.substring(4, 6), 10) - 1;
+        var day = parseInt(string.substring(6, 8), 10);
+        return new Date(year, month, day);
+      },
+      
+      hash: function (input) {
+        var output = 0;
+        for (var i = 0; i < input.length; i++) {
+          var c = input.charCodeAt(i);
+          output = ((output << 5) - output) + c;
+          output |= 0;
+        }
+        return output;
+      }
+      
+    };
+  }])
+  
+  /**
    * Extends $resource:
    * <ul>
    * <li>The <code>query</code> method is not expecting an array anymore.</li>
@@ -195,10 +237,321 @@
     
     };
   }])
+  
+  /**
+   * Abstraction layer for the local storage, handles weak entries.
+   */
+  .provider("LocalRepository", [
+  function () {
+  
+    var VERSION_ENTRY_NAME = "v";
+    var DEFAULT_VERSION = "-1";
+    var version = DEFAULT_VERSION;
+    
+    var PREFIX = "lr.";
+    var FIRST_ENTRY_POINTER_NAME = "f";
+    var PREVIOUS_ENTRY_POINTER_SUFFIX = ".p";
+    var NEXT_ENTRY_POINTER_SUFFIX = ".n";
+    var LAST_ENTRY_POINTER_NAME = "l";
+    
+    var DATE_ENTRY_SUFFIX = ".d";
+    var DEFAULT_CACHE_LIFETIME_IN_DAYS = 30;
+    var cacheLifetimeInDays = DEFAULT_CACHE_LIFETIME_IN_DAYS;
+    
+    var StringUtils;
+    var firstEntryPointer;
+    var lastEntryPointer;
+  
+    var Entry = function (id) {
+      if (StringUtils.startsWith(id, PREFIX)) {
+        this.pristineId = id.substring(3);
+        this.id = id;
+      } else {
+        this.pristineId = id;
+        this.id = PREFIX + id;
+      }
+    };
+    
+    Entry.prototype = {
+    
+      isCache: function () {
+        return this.dateEntry().exists();
+      },
+      
+      isObsolete: function () {
+        return this.isCache() && Math.round((StringUtils.toDate(StringUtils.fromDate(new Date())) - StringUtils.toDate(this.dateEntry().pristineGet())) / (1000 * 60 * 60 * 24)) > cacheLifetimeInDays;
+      },
+      
+      toString: function () {
+        return this.id;
+      },
+      
+      exists: function () {
+        return localStorage.getItem(this) !== null;
+      },
+      
+      previousPointer: function () {
+        return new EntryPointer(this + PREVIOUS_ENTRY_POINTER_SUFFIX);
+      },
+      
+      nextPointer: function () {
+        return new EntryPointer(this + NEXT_ENTRY_POINTER_SUFFIX);
+      },
+      
+      dateEntry: function () {
+        return new Entry(this + DATE_ENTRY_SUFFIX);
+      },
+      
+      pristineRemove: function () {
+        localStorage.removeItem(this);
+        return this;
+      },
+      
+      pristineGet: function () {
+        return localStorage.getItem(this);
+      },
+      
+      pristineSet: function (value) {
+        if (value instanceof EntryPointer) {
+          value = value.asEntry();
+        }
+        if (value instanceof Entry) {
+          value = value.pristineId;
+        }
+        var done = false;
+        do {
+          try {
+            localStorage.setItem(this, value);
+            done = true;
+          } catch (e) {
+            if (!this.removeOldestCacheEntry()) {
+              throw e;
+            }
+          }
+        } while (!done);
+        return this;
+      },
+      
+      removeOldestCacheEntry: function () {
+        var removed = false;
+        if (firstEntryPointer.exists()) {
+          firstEntryPointer.asEntry().remove();
+          removed = true;
+        }
+        return removed;
+      },
+      
+      get: function () {
+        var entry = this.pristineGet();
+        if (this.exists()) {
+          entry = angular.fromJson(entry);
+          if (this.isCache()) {
+            this.set(entry, true);
+          }
+        }
+        return entry;
+      },
+      
+      set: function (value, cache) {
+        if (this.exists()) {
+          this.remove();
+        }
+        if (cache) {
+          if (!firstEntryPointer.exists()) {
+            firstEntryPointer.pristineSet(this);
+          }
+          if (lastEntryPointer.exists()) {
+            var lastEntry = lastEntryPointer.asEntry();
+            lastEntry.nextPointer().pristineSet(this);
+            this.previousPointer().pristineSet(lastEntry);
+          }
+          lastEntryPointer.pristineSet(this);
+          this.dateEntry().pristineSet(StringUtils.fromDate(new Date()));
+        }
+        this.pristineSet(angular.toJson(value));
+        return value;
+      },
+      
+      remove: function () {
+        var entry = this.pristineGet();
+        if (this.exists()) {
+          entry = angular.fromJson(entry);
+          if (this.isCache()) {
+            var previousEntryPointer = this.previousPointer();
+            var nextEntryPointer = this.nextPointer();
+            if (previousEntryPointer.exists()) {
+              if (nextEntryPointer.exists()) {
+                previousEntryPointer.asEntry().nextPointer().pristineSet(nextEntryPointer);
+                nextEntryPointer.asEntry().previousPointer().pristineSet(previousEntryPointer);
+                previousEntryPointer.pristineRemove();
+                nextEntryPointer.pristineRemove();
+              } else {
+                lastEntryPointer.pristineSet(previousEntryPointer);
+                lastEntryPointer.asEntry().nextPointer().pristineRemove();
+                previousEntryPointer.pristineRemove();
+              }
+            } else if (nextEntryPointer.exists()) {
+              firstEntryPointer.pristineSet(nextEntryPointer);
+              firstEntryPointer.asEntry().previousPointer().pristineRemove();
+              nextEntryPointer.pristineRemove();
+            } else {
+              firstEntryPointer.pristineRemove();
+              previousEntryPointer.pristineRemove();
+              nextEntryPointer.pristineRemove();
+              lastEntryPointer.pristineRemove();
+            }
+          }
+          this.dateEntry().pristineRemove();
+          this.pristineRemove();
+        }
+        return entry;
+      }
+      
+    };
+    
+    var EntryPointer = function (id) {
+      Entry.call(this, id);
+    };  
+    EntryPointer.prototype = Object.create(Entry.prototype);
+    EntryPointer.prototype.constructor = EntryPointer;
+    
+    angular.extend(EntryPointer.prototype, {
+    
+      asEntry: function () {
+        return new Entry(this.pristineGet());
+      }
+      
+    });
+    
+    var API = {
+        
+      has: function (id) {
+        return new Entry(id).exists();
+      },
+      
+      set: function (id, value, cache) {
+        if (id === VERSION_ENTRY_NAME || id === FIRST_ENTRY_POINTER_NAME || id === LAST_ENTRY_POINTER_NAME) {
+          throw new Error("Reserved identifiers: '" + VERSION_ENTRY_NAME + "', '" + FIRST_ENTRY_POINTER_NAME + "', '" + LAST_ENTRY_POINTER_NAME + "'");
+        } else if (StringUtils.startsWith(id, PREFIX)) {
+          throw new Error("Reserved prefixes: '" + PREFIX + "'");
+        } else if (StringUtils.endsWith(id, PREVIOUS_ENTRY_POINTER_SUFFIX) || StringUtils.endsWith(id, NEXT_ENTRY_POINTER_SUFFIX) || StringUtils.endsWith(id, DATE_ENTRY_SUFFIX)) {
+          throw new Error("Reserved suffixes: '" + PREVIOUS_ENTRY_POINTER_SUFFIX + "', '" + NEXT_ENTRY_POINTER_SUFFIX + "', '" + DATE_ENTRY_SUFFIX + "'");
+        }
+        return new Entry(id).set(value, cache);
+      },
+      
+      remove: function (id) {
+        return new Entry(id).remove();
+      },
+      
+      get: function (id) {
+        return new Entry(id).get();
+      },
+      
+      clearCache: function () {
+        while (firstEntryPointer.exists() && firstEntryPointer.asEntry().isObsolete()) {
+          firstEntryPointer.asEntry().remove();
+        }
+      },
+      
+      clear: function () {
+        var count = 0;
+        var i = 0;
+        while (i < localStorage.length) {
+          var id = localStorage.key(i);
+          if (StringUtils.startsWith(id, PREFIX) && id !== versionEntry.id) {
+            localStorage.removeItem(id);
+            count++;
+          } else {
+            i++;
+          }
+        }
+        return count;
+      }
+    
+    };
+    
+    var init = function (newStringUtils) {
+      StringUtils = newStringUtils;
+      firstEntryPointer = new EntryPointer(FIRST_ENTRY_POINTER_NAME);
+      lastEntryPointer = new EntryPointer(LAST_ENTRY_POINTER_NAME);
+    };
+    
+    return {
+    
+      setVersion: function (newVersion) {
+        version = newVersion;
+      },
+      
+      setCacheLifetimeInDays: function (newCacheLifetimeInDays) {
+        cacheLifetimeInDays = newCacheLifetimeInDays;
+      },
+    
+      $get: ["StringUtils",
+      function (StringUtils) {
+        init(StringUtils);
+        var versionEntry = new Entry(VERSION_ENTRY_NAME);
+        if (!versionEntry.exists() || versionEntry.pristineGet() !== version) {
+          localStorage.clear();
+          versionEntry.pristineSet(version);
+        } else {
+          API.clearCache();
+        }
+        return API;
+      }]
+      
+    };
+  
+  }])
+  
+  /**
+   * Caches images data URLs in the local storage.
+   */
+  .factory("ImageCache", ["$q", "LocalRepository", "StringUtils",
+  function ($q, LocalRepository, StringUtils) {
+    
+    var getDataUrl = function (imageUrl, imageType, imageQuality) {
+      var deferred = $q.defer();
+      var image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onerror = function () {
+        deferred.reject();
+      };
+      image.onload = function () {
+        var canvas = document.createElement("canvas");
+        canvas.height = this.naturalHeight;
+        canvas.width = this.naturalWidth;
+        canvas.getContext("2d").drawImage(this, 0, 0);
+        deferred.resolve(canvas.toDataURL(imageType, imageQuality));
+      };
+      image.src = imageUrl;
+      return deferred.promise;
+    };
+    
+    return {
+      
+      has: function (imageUrl) {
+        return LocalRepository.has(StringUtils.hash(imageUrl));
+      },
+      
+      get: function (imageUrl) {
+        return LocalRepository.get(StringUtils.hash(imageUrl));
+      },
+      
+      cache: function (imageUrl, imageType, imageQuality) {
+        return getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
+          LocaRepository.set(StringUtils.hash(imageUrl), dataUrl, true);
+          return dataUrl;
+        });
+      }
+      
+    };
+    
+  }])
 
   /**
-   * Initializer, provides a <code>config</code> method to be called in a configuration block, and a <code>run</code> method to be called in a run
-   * block.
+   * Initializer, provides a <code>$config</code> method to be called in a configuration block,
+   * and a <code>$run</code> method to be called in a run block.
    */
   .provider("jrestful", [
   function () {
@@ -208,18 +561,18 @@
       $extend: function (extendedConfig, extendedRun) {
         
         if (typeof extendedConfig === "function") {
-          var originalConfig = this.config;
-          this.config = function ($injector) {
+          var originalConfig = this.$config;
+          this.$config = function ($injector) {
             originalConfig($injector);
             extendedConfig($injector);
           };
         }
         
         if (typeof extendedRun === "function") {
-          var originalRun = this.$get().run;
+          var originalRun = this.$get().$run;
           this.$get = function () {
             return {
-              run: function ($injector) {
+              $run: function ($injector) {
                 originalRun($injector);
                 extendedRun($injector);
               }
@@ -229,11 +582,11 @@
         
       },
       
-      config: config,
+      $config: config,
       
       $get: function () {
         return {
-          run: run
+          $run: run
         };
       }
       
