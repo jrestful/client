@@ -260,6 +260,7 @@
 
     var $log;
     var StringUtils;
+    var versionEntry;
     var firstEntryPointer;
     var lastEntryPointer;
   
@@ -277,6 +278,12 @@
     
       isCache: function () {
         return this.dateEntry().exists();
+      },
+      
+      isIterable: function () {
+        return !this.isCache()
+          && this.pristineId !== VERSION_ENTRY_NAME && this.pristineId !== FIRST_ENTRY_POINTER_NAME && this.pristineId !== LAST_ENTRY_POINTER_NAME
+          && !StringUtils.endsWith(this.pristineId, PREVIOUS_ENTRY_POINTER_SUFFIX) && !StringUtils.endsWith(this.pristineId, NEXT_ENTRY_POINTER_SUFFIX) && !StringUtils.endsWith(this.pristineId, DATE_ENTRY_SUFFIX);
       },
       
       isObsolete: function () {
@@ -403,8 +410,8 @@
               nextEntryPointer.pristineRemove();
               lastEntryPointer.pristineRemove();
             }
+            this.dateEntry().pristineRemove();
           }
-          this.dateEntry().pristineRemove();
           this.pristineRemove();
         }
         return entry;
@@ -459,17 +466,28 @@
       
       clear: function () {
         var count = 0;
-        var i = 0;
-        while (i < localStorage.length) {
+        for (var i = 0; i < localStorage.length; i++) {
           var id = localStorage.key(i);
-          if (StringUtils.startsWith(id, PREFIX) && id !== versionEntry.id) {
+          if (startsWith(id, PREFIX) && id !== versionEntry.id) {
             localStorage.removeItem(id);
             count++;
-          } else {
-            i++;
+            i--;
           }
         }
         return count;
+      },
+      
+      forEach: function (callback) {
+        for (var i = 0; i < localStorage.length; i++) {
+          var id = localStorage.key(i);
+          if (StringUtils.startsWith(id, PREFIX)) {
+            var entry = new Entry(id);
+            if (entry.isIterable() && callback(entry.pristineId, entry.get())) {
+              entry.pristineRemove();
+              i--;
+            }
+          }
+        }
       }
     
     };
@@ -477,9 +495,9 @@
     var init = function (new$log, newStringUtils) {
       $log = new$log;
       StringUtils = newStringUtils;
+      versionEntry = new Entry(VERSION_ENTRY_NAME);
       firstEntryPointer = new EntryPointer(FIRST_ENTRY_POINTER_NAME);
       lastEntryPointer = new EntryPointer(LAST_ENTRY_POINTER_NAME);
-      var versionEntry = new Entry(VERSION_ENTRY_NAME);
       if (!versionEntry.exists() || versionEntry.pristineGet() !== version) {
         localStorage.clear();
         versionEntry.pristineSet(version);
