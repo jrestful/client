@@ -257,7 +257,8 @@
     var DATE_ENTRY_SUFFIX = ".d";
     var DEFAULT_CACHE_LIFETIME_IN_DAYS = 30;
     var cacheLifetimeInDays = DEFAULT_CACHE_LIFETIME_IN_DAYS;
-    
+
+    var $log;
     var StringUtils;
     var firstEntryPointer;
     var lastEntryPointer;
@@ -324,7 +325,9 @@
             localStorage.setItem(this, value);
             done = true;
           } catch (e) {
-            if (!this.removeOldestCacheEntry()) {
+            if (this.removeOldestCacheEntry()) {
+              $log.debug("Local storage quota exceeded when setting '" + this + "', oldest cache entry has been removed");
+            } else {
               throw e;
             }
           }
@@ -471,10 +474,19 @@
     
     };
     
-    var init = function (newStringUtils) {
+    var init = function (new$log, newStringUtils) {
+      $log = new$log;
       StringUtils = newStringUtils;
       firstEntryPointer = new EntryPointer(FIRST_ENTRY_POINTER_NAME);
       lastEntryPointer = new EntryPointer(LAST_ENTRY_POINTER_NAME);
+      var versionEntry = new Entry(VERSION_ENTRY_NAME);
+      if (!versionEntry.exists() || versionEntry.pristineGet() !== version) {
+        localStorage.clear();
+        versionEntry.pristineSet(version);
+        $log.debug("LocalRepository initialized to version '" + version + "'");
+      } else {
+        API.clearCache();
+      }
     };
     
     return {
@@ -487,16 +499,9 @@
         cacheLifetimeInDays = newCacheLifetimeInDays;
       },
     
-      $get: ["StringUtils",
-      function (StringUtils) {
-        init(StringUtils);
-        var versionEntry = new Entry(VERSION_ENTRY_NAME);
-        if (!versionEntry.exists() || versionEntry.pristineGet() !== version) {
-          localStorage.clear();
-          versionEntry.pristineSet(version);
-        } else {
-          API.clearCache();
-        }
+      $get: ["$log", "StringUtils",
+      function ($log, StringUtils) {
+        init($log, StringUtils);
         return API;
       }]
       
@@ -507,8 +512,8 @@
   /**
    * Caches images data URLs in the local storage.
    */
-  .factory("ImageCache", ["$q", "LocalRepository", "StringUtils",
-  function ($q, LocalRepository, StringUtils) {
+  .factory("ImageCache", ["$q", "$log", "LocalRepository", "StringUtils",
+  function ($q, $log, LocalRepository, StringUtils) {
     
     var getDataUrl = function (imageUrl, imageType, imageQuality) {
       var deferred = $q.defer();
@@ -540,6 +545,7 @@
       
       cache: function (imageUrl, imageType, imageQuality) {
         return getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
+          $log.debug("Image '" + imageUrl + "' cached");
           LocalRepository.set(StringUtils.hash(imageUrl), dataUrl, true);
           return dataUrl;
         });

@@ -16,6 +16,7 @@
     
     var $rootScope = $injector.get("$rootScope");
     var $ionicHistory = $injector.get("$ionicHistory");
+    var $log = $injector.get("$log");
     
     var clearCache = false;
     var clearHistory = false;
@@ -38,11 +39,13 @@
       if (clearCache) {
         clearCache = false;
         $ionicHistory.clearCache().then(function () {
+          $log.debug("Cache cleared");
           $rootScope.$broadcast("cacheCleared");
         });
       }
       if (clearHistory) {
         clearHistory = false;
+        $log.debug("History cleared");
         $rootScope.$broadcast("historyCleared");
       }
     });
