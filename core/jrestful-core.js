@@ -540,7 +540,7 @@
       
       cache: function (imageUrl, imageType, imageQuality) {
         return getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
-          LocaRepository.set(StringUtils.hash(imageUrl), dataUrl, true);
+          LocalRepository.set(StringUtils.hash(imageUrl), dataUrl, true);
           return dataUrl;
         });
       }
