@@ -61,12 +61,31 @@
   function () {
     return {
       
-      startsWith: function (haystack, needle) {
-        return haystack.lastIndexOf(needle, 0) === 0;
+      startsWith: function (haystack) {
+        for (var i = 1; i < arguments.length; i++) {
+          if (haystack.lastIndexOf(arguments[i], 0) === 0) {
+            return true;
+          }
+        }
+        return false;
       },
       
-      endsWith: function (haystack, needle) {
-        return haystack.substr(-needle.length) === needle;
+      endsWith: function (haystack) {
+        for (var i = 1; i < arguments.length; i++) {
+          if (haystack.substr(-arguments[i].length) === arguments[i]) {
+            return true;
+          }
+        }
+        return false;
+      },
+      
+      is: function (haystack) {
+        for (var i = 1; i < arguments.length; i++) {
+          if (haystack === arguments[i]) {
+            return true;
+          }
+        }
+        return false;
       },
       
       fromDate: function (date) {
@@ -248,83 +267,60 @@
     var DEFAULT_VERSION = "-1";
     var version = DEFAULT_VERSION;
     
-    var PREFIX = "lr.";
-    var FIRST_ENTRY_POINTER_NAME = "f";
-    var PREVIOUS_ENTRY_POINTER_SUFFIX = ".p";
-    var NEXT_ENTRY_POINTER_SUFFIX = ".n";
-    var LAST_ENTRY_POINTER_NAME = "l";
+    var WEAK_ENTRIES_DATE_ENTRY_SUFFIX = ".d";
+    var DEFAULT_WEAK_ENTRIES_LIFETIME_IN_DAYS = 30;
+    var weakEntriesLifetimeInDays = DEFAULT_WEAK_ENTRIES_LIFETIME_IN_DAYS;
     
-    var DATE_ENTRY_SUFFIX = ".d";
-    var DEFAULT_CACHE_LIFETIME_IN_DAYS = 30;
-    var cacheLifetimeInDays = DEFAULT_CACHE_LIFETIME_IN_DAYS;
+    var ENTRY_PREFIX = "lr.";
+    var FIRST_WEAK_ENTRY_POINTER_NAME = "f";
+    var PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX = ".p";
+    var NEXT_WEAK_ENTRY_POINTER_SUFFIX = ".n";
+    var LAST_WEAK_ENTRY_POINTER_NAME = "l";
 
     var $log;
     var StringUtils;
     var versionEntry;
-    var firstEntryPointer;
-    var lastEntryPointer;
+    var firstWeakEntryPointer;
+    var lastWeakEntryPointer;
   
-    var Entry = function (id) {
-      if (StringUtils.startsWith(id, PREFIX)) {
-        this.pristineId = id.substring(3);
-        this.id = id;
+    var Entry = function (key) {
+      if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+        this.pristineKey = key.substring(ENTRY_PREFIX.length);
+        this.key = key;
       } else {
-        this.pristineId = id;
-        this.id = PREFIX + id;
+        this.pristineKey = key;
+        this.key = ENTRY_PREFIX + key;
       }
     };
-    
+
     Entry.prototype = {
-    
-      isCache: function () {
-        return this.dateEntry().exists();
-      },
-      
-      isIterable: function () {
-        return !this.isCache()
-          && this.pristineId !== VERSION_ENTRY_NAME && this.pristineId !== FIRST_ENTRY_POINTER_NAME && this.pristineId !== LAST_ENTRY_POINTER_NAME
-          && !StringUtils.endsWith(this.pristineId, PREVIOUS_ENTRY_POINTER_SUFFIX) && !StringUtils.endsWith(this.pristineId, NEXT_ENTRY_POINTER_SUFFIX) && !StringUtils.endsWith(this.pristineId, DATE_ENTRY_SUFFIX);
-      },
-      
-      isObsolete: function () {
-        return this.isCache() && Math.round((StringUtils.toDate(StringUtils.fromDate(new Date())) - StringUtils.toDate(this.dateEntry().pristineGet())) / (1000 * 60 * 60 * 24)) > cacheLifetimeInDays;
-      },
       
       toString: function () {
-        return this.id;
+        return this.key;
+      },
+      
+      isUserAccessible: function () {
+        return this.exists();
       },
       
       exists: function () {
         return localStorage.getItem(this) !== null;
       },
       
-      previousPointer: function () {
-        return new EntryPointer(this + PREVIOUS_ENTRY_POINTER_SUFFIX);
-      },
-      
-      nextPointer: function () {
-        return new EntryPointer(this + NEXT_ENTRY_POINTER_SUFFIX);
-      },
-      
-      dateEntry: function () {
-        return new Entry(this + DATE_ENTRY_SUFFIX);
-      },
-      
-      pristineRemove: function () {
+      remove: function () {
         localStorage.removeItem(this);
-        return this;
       },
       
-      pristineGet: function () {
+      getString: function () {
         return localStorage.getItem(this);
       },
       
-      pristineSet: function (value) {
-        if (value instanceof EntryPointer) {
-          value = value.asEntry();
+      setString: function (value) {
+        if (value instanceof Entry.Weak.Pointer) {
+          value = value.getPointedWeakEntry();
         }
         if (value instanceof Entry) {
-          value = value.pristineId;
+          value = value.pristineKey;
         }
         var done = false;
         do {
@@ -332,144 +328,244 @@
             localStorage.setItem(this, value);
             done = true;
           } catch (e) {
-            if (this.removeOldestCacheEntry()) {
-              $log.debug("Local storage quota exceeded when setting '" + this + "', oldest cache entry has been removed");
+            if (Entry.Weak.removeOldest()) {
+              $log.debug("Local storage quota exceeded when setting '" + this + "', oldest weak entry has been removed");
             } else {
               throw e;
             }
           }
         } while (!done);
-        return this;
       },
       
-      removeOldestCacheEntry: function () {
-        var removed = false;
-        if (firstEntryPointer.exists()) {
-          firstEntryPointer.asEntry().remove();
-          removed = true;
-        }
-        return removed;
-      },
-      
-      get: function () {
-        var entry = this.pristineGet();
+      getObject: function () {
+        var value = this.getString();
         if (this.exists()) {
-          entry = angular.fromJson(entry);
-          if (this.isCache()) {
-            this.set(entry, true);
-          }
+          value = angular.fromJson(value);
         }
-        return entry;
-      },
-      
-      set: function (value, cache) {
-        if (this.exists()) {
-          this.remove();
-        }
-        if (cache) {
-          if (!firstEntryPointer.exists()) {
-            firstEntryPointer.pristineSet(this);
-          }
-          if (lastEntryPointer.exists()) {
-            var lastEntry = lastEntryPointer.asEntry();
-            lastEntry.nextPointer().pristineSet(this);
-            this.previousPointer().pristineSet(lastEntry);
-          }
-          lastEntryPointer.pristineSet(this);
-          this.dateEntry().pristineSet(StringUtils.fromDate(new Date()));
-        }
-        this.pristineSet(angular.toJson(value));
         return value;
       },
       
-      remove: function () {
-        var entry = this.pristineGet();
-        if (this.exists()) {
-          entry = angular.fromJson(entry);
-          if (this.isCache()) {
-            var previousEntryPointer = this.previousPointer();
-            var nextEntryPointer = this.nextPointer();
-            if (previousEntryPointer.exists()) {
-              if (nextEntryPointer.exists()) {
-                previousEntryPointer.asEntry().nextPointer().pristineSet(nextEntryPointer);
-                nextEntryPointer.asEntry().previousPointer().pristineSet(previousEntryPointer);
-                previousEntryPointer.pristineRemove();
-                nextEntryPointer.pristineRemove();
-              } else {
-                lastEntryPointer.pristineSet(previousEntryPointer);
-                lastEntryPointer.asEntry().nextPointer().pristineRemove();
-                previousEntryPointer.pristineRemove();
-              }
-            } else if (nextEntryPointer.exists()) {
-              firstEntryPointer.pristineSet(nextEntryPointer);
-              firstEntryPointer.asEntry().previousPointer().pristineRemove();
-              nextEntryPointer.pristineRemove();
-            } else {
-              firstEntryPointer.pristineRemove();
-              previousEntryPointer.pristineRemove();
-              nextEntryPointer.pristineRemove();
-              lastEntryPointer.pristineRemove();
-            }
-            this.dateEntry().pristineRemove();
-          }
-          this.pristineRemove();
-        }
-        return entry;
+      setObject: function (value) {
+        this.setString(angular.toJson(value));
       }
       
     };
+
+    Entry.create = function (key, weak) {
+      if (StringUtils.is(key, VERSION_ENTRY_NAME, FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME)) {
+        throw new Error("Reserved keys: '" + VERSION_ENTRY_NAME + "', '" + FIRST_WEAK_ENTRY_POINTER_NAME + "', '" + LAST_WEAK_ENTRY_POINTER_NAME + "'");
+      } else if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+        throw new Error("Reserved prefixes: '" + ENTRY_PREFIX + "'");
+      } else if (StringUtils.endsWith(key, PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
+        throw new Error("Reserved suffixes: '" + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX + "', '" + NEXT_WEAK_ENTRY_POINTER_SUFFIX + "', '" + WEAK_ENTRIES_DATE_ENTRY_SUFFIX + "'");
+      }
+      return weak ? new Entry.Weak(key) : new Entry(key);
+    };
+
+    Entry.find = function (key) {
+      if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+        return new Entry.Transient(key);
+      } else if (StringUtils.is(key, VERSION_ENTRY_NAME)) {
+        return new Entry.Version(key);
+      } else if (StringUtils.is(key, FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME) || StringUtils.endsWith(key, PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX)) {
+        return new Entry.Weak.Pointer(key);
+      } else if (StringUtils.endsWith(key, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
+        return new Entry.Weak.Date(key);
+      } else {
+        var entry = new Entry.Weak(key);
+        if (!entry.getDateEntry().exists()) {
+          entry = new Entry(key);
+        }
+        return entry;
+      }
+    };
     
-    var EntryPointer = function (id) {
-      Entry.call(this, id);
-    };  
-    EntryPointer.prototype = Object.create(Entry.prototype);
-    EntryPointer.prototype.constructor = EntryPointer;
+    Entry.Transient = function (key) {
+      Entry.call(this, key);
+    };
+    Entry.Transient.prototype = Object.create(Entry.prototype);
+    Entry.Transient.prototype.constructor = Entry.Transient;
     
-    angular.extend(EntryPointer.prototype, {
-    
-      asEntry: function () {
-        return new Entry(this.pristineGet());
+    angular.extend(Entry.Transient.prototype, {
+      
+      exists: function () {
+        return false;
       }
       
     });
-    
+
+    Entry.Weak = function (key) {
+      Entry.call(this, key);
+    };  
+    Entry.Weak.prototype = Object.create(Entry.prototype);
+    Entry.Weak.prototype.constructor = Entry.Weak;
+
+    angular.extend(Entry.Weak.prototype, {
+          
+      isObsolete: function () {
+        return Math.round((StringUtils.toDate(StringUtils.fromDate(new Date())) - StringUtils.toDate(this.getDateEntry().getString())) / (1000 * 60 * 60 * 24)) > weakEntriesLifetimeInDays;
+      },
+      
+      getPreviousWeakEntryPointer: function () {
+        return new Entry.Weak.Pointer(this + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX);
+      },
+      
+      getNextWeakEntryPointer: function () {
+        return new Entry.Weak.Pointer(this + NEXT_WEAK_ENTRY_POINTER_SUFFIX);
+      },
+      
+      getDateEntry: function () {
+        return new Entry.Weak.Date(this + WEAK_ENTRIES_DATE_ENTRY_SUFFIX);
+      },
+      
+      getObject: function (setAsLastWeakEntry) {
+        var value = Entry.prototype.getObject.call(this);
+        if (setAsLastWeakEntry && this.exists()) {
+          this.setObject(value, true);
+        }
+        return value;
+      },
+      
+      setObject: function (value) {
+        if (this.exists()) {
+          this.remove();
+        }
+        if (!firstWeakEntryPointer.exists()) {
+          firstWeakEntryPointer.setString(this);
+        }
+        if (lastWeakEntryPointer.exists()) {
+          var lastWeakEntry = lastWeakEntryPointer.getPointedWeakEntry();
+          lastWeakEntry.getNextWeakEntryPointer().setString(this);
+          this.getPreviousWeakEntryPointer().setString(lastWeakEntry);
+        }
+        lastWeakEntryPointer.setString(this);
+        this.getDateEntry().setString(StringUtils.fromDate(new Date()));
+        Entry.prototype.setObject.call(this, value);
+      },
+      
+      remove: function () {
+        if (this.exists()) {
+          var previousEntryPointer = this.getPreviousWeakEntryPointer();
+          var nextEntryPointer = this.getNextWeakEntryPointer();
+          if (previousEntryPointer.exists()) {
+            if (nextEntryPointer.exists()) {
+              previousEntryPointer.getPointedWeakEntry().getNextWeakEntryPointer().setString(nextEntryPointer);
+              nextEntryPointer.getPointedWeakEntry().getPreviousWeakEntryPointer().setString(previousEntryPointer);
+              previousEntryPointer.remove();
+              nextEntryPointer.remove();
+            } else {
+              lastWeakEntryPointer.setString(previousEntryPointer);
+              lastWeakEntryPointer.getPointedWeakEntry().getNextWeakEntryPointer().remove();
+              previousEntryPointer.remove();
+            }
+          } else if (nextEntryPointer.exists()) {
+            firstWeakEntryPointer.setString(nextEntryPointer);
+            firstWeakEntryPointer.getPointedWeakEntry().getPreviousWeakEntryPointer().remove();
+            nextEntryPointer.remove();
+          } else {
+            firstWeakEntryPointer.remove();
+            previousEntryPointer.remove();
+            nextEntryPointer.remove();
+            lastWeakEntryPointer.remove();
+          }
+          this.getDateEntry().remove();
+        }
+        Entry.prototype.remove.call(this);
+      }
+      
+    });
+
+    Entry.Weak.removeOldest = function () {
+      var removed = false;
+      if (firstWeakEntryPointer.exists()) {
+        firstWeakEntryPointer.getPointedWeakEntry().remove();
+        removed = true;
+      }
+      return removed;
+    };
+
+    Entry.Weak.Date = function (key) {
+      Entry.call(this, key);
+    };  
+    Entry.Weak.Date.prototype = Object.create(Entry.prototype);
+    Entry.Weak.Date.prototype.constructor = Entry.Weak.Date;
+
+    angular.extend(Entry.Weak.Date.prototype, {
+
+      isUserAccessible: function () {
+        return false;
+      }
+      
+    });
+
+    Entry.Version = function (key) {
+      Entry.call(this, key);
+    };  
+    Entry.Version.prototype = Object.create(Entry.prototype);
+    Entry.Version.prototype.constructor = Entry.Version;
+
+    angular.extend(Entry.Version.prototype, {
+
+      isUserAccessible: function () {
+        return false;
+      }
+      
+    });
+        
+    Entry.Weak.Pointer = function (key) {
+      Entry.call(this, key);
+    };  
+    Entry.Weak.Pointer.prototype = Object.create(Entry.prototype);
+    Entry.Weak.Pointer.prototype.constructor = Entry.Weak.Pointer;
+
+    angular.extend(Entry.Weak.Pointer.prototype, {
+
+      isUserAccessible: function () {
+        return false;
+      },
+
+      getPointedWeakEntry: function () {
+        return new Entry.Weak(this.getString());
+      }
+      
+    });
+
     var API = {
         
-      has: function (id) {
-        return new Entry(id).exists();
+      has: function (key) {
+        return Entry.find(key).isUserAccessible();
       },
       
-      set: function (id, value, cache) {
-        if (id === VERSION_ENTRY_NAME || id === FIRST_ENTRY_POINTER_NAME || id === LAST_ENTRY_POINTER_NAME) {
-          throw new Error("Reserved identifiers: '" + VERSION_ENTRY_NAME + "', '" + FIRST_ENTRY_POINTER_NAME + "', '" + LAST_ENTRY_POINTER_NAME + "'");
-        } else if (StringUtils.startsWith(id, PREFIX)) {
-          throw new Error("Reserved prefixes: '" + PREFIX + "'");
-        } else if (StringUtils.endsWith(id, PREVIOUS_ENTRY_POINTER_SUFFIX) || StringUtils.endsWith(id, NEXT_ENTRY_POINTER_SUFFIX) || StringUtils.endsWith(id, DATE_ENTRY_SUFFIX)) {
-          throw new Error("Reserved suffixes: '" + PREVIOUS_ENTRY_POINTER_SUFFIX + "', '" + NEXT_ENTRY_POINTER_SUFFIX + "', '" + DATE_ENTRY_SUFFIX + "'");
+      set: function (key, value, weak) {
+        Entry.create(key, weak).setObject(value);
+      },
+      
+      remove: function (key) {
+        var entry = Entry.find(key);
+        if (entry.isUserAccessible()) {
+          entry.remove();
         }
-        return new Entry(id).set(value, cache);
       },
       
-      remove: function (id) {
-        return new Entry(id).remove();
+      get: function (key) {
+        var entry = Entry.find(key);
+        if (entry.isUserAccessible()) {
+          return entry.getObject(true);
+        }
       },
       
-      get: function (id) {
-        return new Entry(id).get();
-      },
-      
-      clearCache: function () {
-        while (firstEntryPointer.exists() && firstEntryPointer.asEntry().isObsolete()) {
-          firstEntryPointer.asEntry().remove();
+      clearObsoleteWeakEntries: function () {
+        while (firstWeakEntryPointer.exists() && firstWeakEntryPointer.getPointedWeakEntry().isObsolete()) {
+          firstWeakEntryPointer.getPointedWeakEntry().remove();
         }
       },
       
       clear: function () {
         var count = 0;
         for (var i = 0; i < localStorage.length; i++) {
-          var id = localStorage.key(i);
-          if (startsWith(id, PREFIX) && id !== versionEntry.id) {
-            localStorage.removeItem(id);
+          var key = localStorage.key(i);
+          if (startsWith(key, ENTRY_PREFIX) && key !== versionEntry.key) {
+            localStorage.removeItem(key);
             count++;
             i--;
           }
@@ -479,31 +575,30 @@
       
       forEach: function (callback) {
         for (var i = 0; i < localStorage.length; i++) {
-          var id = localStorage.key(i);
-          if (StringUtils.startsWith(id, PREFIX)) {
-            var entry = new Entry(id);
-            if (entry.isIterable() && callback(entry.pristineId, entry.get())) {
-              entry.pristineRemove();
-              i--;
+          var key = localStorage.key(i);
+          if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+            var entry = Entry.find(key.substring(ENTRY_PREFIX.length));
+            if (entry.isUserAccessible()) {
+              callback(entry.pristineKey, entry.getObject(false));
             }
           }
         }
       }
-    
+
     };
     
     var init = function (new$log, newStringUtils) {
       $log = new$log;
       StringUtils = newStringUtils;
-      versionEntry = new Entry(VERSION_ENTRY_NAME);
-      firstEntryPointer = new EntryPointer(FIRST_ENTRY_POINTER_NAME);
-      lastEntryPointer = new EntryPointer(LAST_ENTRY_POINTER_NAME);
-      if (!versionEntry.exists() || versionEntry.pristineGet() !== version) {
+      versionEntry = new Entry.Version(VERSION_ENTRY_NAME);
+      firstWeakEntryPointer = new Entry.Weak.Pointer(FIRST_WEAK_ENTRY_POINTER_NAME);
+      lastWeakEntryPointer = new Entry.Weak.Pointer(LAST_WEAK_ENTRY_POINTER_NAME);
+      if (!versionEntry.exists() || versionEntry.getString() !== version) {
         localStorage.clear();
-        versionEntry.pristineSet(version);
+        versionEntry.setString(version);
         $log.debug("LocalRepository initialized to version '" + version + "'");
       } else {
-        API.clearCache();
+        API.clearObsoleteWeakEntries();
       }
     };
     
@@ -513,8 +608,8 @@
         version = newVersion;
       },
       
-      setCacheLifetimeInDays: function (newCacheLifetimeInDays) {
-        cacheLifetimeInDays = newCacheLifetimeInDays;
+      setWeakEntriesLifetimeInDays: function (newWeakEntriesLifetimeInDays) {
+        weakEntriesLifetimeInDays = newWeakEntriesLifetimeInDays;
       },
     
       $get: ["$log", "StringUtils",
@@ -532,6 +627,9 @@
    */
   .factory("ImageCache", ["$q", "$log", "LocalRepository", "StringUtils",
   function ($q, $log, LocalRepository, StringUtils) {
+    
+    // TODO LocalRepository should handle ENTRY_PREFIX as a reserved prefix
+    var ENTRY_PREFIX = "ic.";
     
     var getDataUrl = function (imageUrl, imageType, imageQuality) {
       var deferred = $q.defer();
@@ -554,18 +652,30 @@
     return {
       
       has: function (imageUrl) {
-        return LocalRepository.has(StringUtils.hash(imageUrl));
+        return LocalRepository.has(ENTRY_PREFIX + StringUtils.hash(imageUrl));
       },
       
       get: function (imageUrl) {
-        return LocalRepository.get(StringUtils.hash(imageUrl));
+        return LocalRepository.get(ENTRY_PREFIX + StringUtils.hash(imageUrl));
       },
       
-      cache: function (imageUrl, imageType, imageQuality) {
+      cache: function (imageUrl, weak, imageType, imageQuality) {
         return getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
           $log.debug("Image '" + imageUrl + "' cached");
-          LocalRepository.set(StringUtils.hash(imageUrl), dataUrl, true);
+          LocalRepository.set(ENTRY_PREFIX + StringUtils.hash(imageUrl), dataUrl, weak);
           return dataUrl;
+        });
+      },
+      
+      clear: function () {
+        var keys = [];
+        LocalRepository.forEach(function (key) {
+          if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+            keys.push(key);
+          }
+        });
+        angular.forEach(keys, function (key) {
+          LocalRepository.remove(key);
         });
       }
       
