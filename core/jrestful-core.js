@@ -710,7 +710,7 @@
               keys.push(key);
             });
             angular.forEach(keys, function (key) {
-              LocalRepository.remove(key);
+              API.remove(key);
             });
           }
           
