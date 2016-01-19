@@ -62,8 +62,15 @@
     return {
       
       startsWith: function (haystack) {
-        for (var i = 1; i < arguments.length; i++) {
-          if (haystack.lastIndexOf(arguments[i], 0) === 0) {
+        var needles;
+        if (Array.isArray(arguments[1])) {
+          needles = arguments[1];
+        } else {
+          needles = Array.prototype.slice.call(arguments);
+          needles.shift();
+        }
+        for (var i = 0; i < needles.length; i++) {
+          if (haystack.lastIndexOf(needles[i], 0) === 0) {
             return true;
           }
         }
@@ -71,8 +78,15 @@
       },
       
       endsWith: function (haystack) {
-        for (var i = 1; i < arguments.length; i++) {
-          if (haystack.substr(-arguments[i].length) === arguments[i]) {
+        var needles;
+        if (Array.isArray(arguments[1])) {
+          needles = arguments[1];
+        } else {
+          needles = Array.prototype.slice.call(arguments);
+          needles.shift();
+        }
+        for (var i = 0; i < needles.length; i++) {
+          if (haystack.substr(-needles[i].length) === needles[i]) {
             return true;
           }
         }
@@ -276,6 +290,7 @@
     var PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX = ".p";
     var NEXT_WEAK_ENTRY_POINTER_SUFFIX = ".n";
     var LAST_WEAK_ENTRY_POINTER_NAME = "l";
+    var reservedPrefixes = [ENTRY_PREFIX];
 
     var $log;
     var StringUtils;
@@ -353,11 +368,11 @@
 
     Entry.create = function (key, weak) {
       if (StringUtils.is(key, VERSION_ENTRY_NAME, FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME)) {
-        throw new Error("Reserved keys: '" + VERSION_ENTRY_NAME + "', '" + FIRST_WEAK_ENTRY_POINTER_NAME + "', '" + LAST_WEAK_ENTRY_POINTER_NAME + "'");
-      } else if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
-        throw new Error("Reserved prefixes: '" + ENTRY_PREFIX + "'");
+        throw new Error("Reserved keys: " + VERSION_ENTRY_NAME + ", " + FIRST_WEAK_ENTRY_POINTER_NAME + ", " + LAST_WEAK_ENTRY_POINTER_NAME);
       } else if (StringUtils.endsWith(key, PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
-        throw new Error("Reserved suffixes: '" + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX + "', '" + NEXT_WEAK_ENTRY_POINTER_SUFFIX + "', '" + WEAK_ENTRIES_DATE_ENTRY_SUFFIX + "'");
+        throw new Error("Reserved suffixes: " + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX + ", " + NEXT_WEAK_ENTRY_POINTER_SUFFIX + ", " + WEAK_ENTRIES_DATE_ENTRY_SUFFIX);
+      } else if (StringUtils.startsWith(key, reservedPrefixes)) {
+        throw new Error("Reserved prefixes: " + reservedPrefixes.join(", "));
       }
       return weak ? new Entry.Weak(key) : new Entry(key);
     };
@@ -611,6 +626,10 @@
       setWeakEntriesLifetimeInDays: function (newWeakEntriesLifetimeInDays) {
         weakEntriesLifetimeInDays = newWeakEntriesLifetimeInDays;
       },
+      
+      addReservedPrefix: function (reservedPrefix) {
+        reservedPrefixes.push(ENTRY_PREFIX + reservedPrefix);
+      },
     
       $get: ["$log", "StringUtils",
       function ($log, StringUtils) {
@@ -625,59 +644,81 @@
   /**
    * Caches images data URLs in the local storage.
    */
-  .factory("ImageCache", ["$q", "$log", "LocalRepository", "StringUtils",
-  function ($q, $log, LocalRepository, StringUtils) {
+  .provider("ImageCache", ["LocalRepositoryProvider",
+  function (LocalRepositoryProvider) {
     
-    // TODO LocalRepository should handle ENTRY_PREFIX as a reserved prefix
     var ENTRY_PREFIX = "ic.";
     
-    var getDataUrl = function (imageUrl, imageType, imageQuality) {
-      var deferred = $q.defer();
-      var image = new Image();
-      image.crossOrigin = "anonymous";
-      image.onerror = function () {
-        deferred.reject();
-      };
-      image.onload = function () {
-        var canvas = document.createElement("canvas");
-        canvas.height = this.naturalHeight;
-        canvas.width = this.naturalWidth;
-        canvas.getContext("2d").drawImage(this, 0, 0);
-        deferred.resolve(canvas.toDataURL(imageType, imageQuality));
-      };
-      image.src = imageUrl;
-      return deferred.promise;
-    };
+    LocalRepositoryProvider.addReservedPrefix(ENTRY_PREFIX);
     
     return {
       
-      has: function (imageUrl) {
-        return LocalRepository.has(ENTRY_PREFIX + StringUtils.hash(imageUrl));
-      },
-      
-      get: function (imageUrl) {
-        return LocalRepository.get(ENTRY_PREFIX + StringUtils.hash(imageUrl));
-      },
-      
-      cache: function (imageUrl, weak, imageType, imageQuality) {
-        return getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
-          $log.debug("Image '" + imageUrl + "' cached");
-          LocalRepository.set(ENTRY_PREFIX + StringUtils.hash(imageUrl), dataUrl, weak);
-          return dataUrl;
-        });
-      },
-      
-      clear: function () {
-        var keys = [];
-        LocalRepository.forEach(function (key) {
-          if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
-            keys.push(key);
+      $get: ["$q", "$log", "LocalRepository", "StringUtils",
+      function ($q, $log, LocalRepository, StringUtils) {
+        
+        var getDataUrl = function (imageUrl, imageType, imageQuality) {
+          var deferred = $q.defer();
+          var image = new Image();
+          image.crossOrigin = "anonymous";
+          image.onerror = function () {
+            deferred.reject();
+          };
+          image.onload = function () {
+            var canvas = document.createElement("canvas");
+            canvas.height = this.naturalHeight;
+            canvas.width = this.naturalWidth;
+            canvas.getContext("2d").drawImage(this, 0, 0);
+            deferred.resolve(canvas.toDataURL(imageType, imageQuality));
+          };
+          image.src = imageUrl;
+          return deferred.promise;
+        };
+        
+        var API = {
+        
+          has: function (key) {
+            return LocalRepository.has(ENTRY_PREFIX + key);
+          },
+          
+          get: function (key) {
+            return LocalRepository.get(ENTRY_PREFIX + key);
+          },
+          
+          remove: function (key) {
+            LocalRepository.remove(ENTRY_PREFIX + key);
+          },
+          
+          cache: function (key, imageUrl, weak, imageType, imageQuality) {
+            return getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
+              $log.debug("Image " + key + " (" + imageUrl + ") cached");
+              LocalRepository.set(ENTRY_PREFIX + key, dataUrl, weak);
+              return dataUrl;
+            });
+          },
+          
+          forEach: function (callback) {
+            LocalRepository.forEach(function (key) {
+              if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+                callback(key.substring(ENTRY_PREFIX.length));
+              }
+            });
+          },
+          
+          clear: function () {
+            var keys = [];
+            API.forEach(function (key) {
+              keys.push(key);
+            });
+            angular.forEach(keys, function (key) {
+              LocalRepository.remove(key);
+            });
           }
-        });
-        angular.forEach(keys, function (key) {
-          LocalRepository.remove(key);
-        });
-      }
+          
+        };
+        
+        return API;
+        
+      }]
       
     };
     
