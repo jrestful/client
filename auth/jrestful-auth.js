@@ -42,8 +42,8 @@
    * Encapsulates the current user profile to implement the <code>$hasRole</code>, <code>$hasAnyRole</code>, <code>$isAnonymous</code>,
    * <code>$isAuthenticated</code> and <code>$refresh</code> methods.
    */
-  .factory("UserProfile", ["$q", "$rootScope", "$log", "Auth",
-  function ($q, $rootScope, $log, Auth) {
+  .factory("UserProfile", ["$q", "$rootScope", "$log", "Auth", "ZZ",
+  function ($q, $rootScope, $log, Auth, ZZ) {
   
     var userProfile = {};
     
@@ -51,11 +51,7 @@
       var deferred = $q.defer();
       Auth.getProfile(function (response) {
         
-        for (var prop in userProfile) {
-          if (userProfile.hasOwnProperty(prop)) {
-            delete userProfile[prop];
-          }
-        }
+        ZZ(userProfile).clear();
         
         deferred.resolve(angular.extend(userProfile, response, {
           

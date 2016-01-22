@@ -55,78 +55,214 @@
   angular.module("jrestful.core", ["ngResource"])
   
   /**
-   * Strings utilities.
+   * Utilities.
    */
-  .factory("StringUtils", [
-  function () {
-    return {
-      
-      startsWith: function (haystack) {
-        var needles;
-        if (Array.isArray(arguments[1])) {
-          needles = arguments[1];
-        } else {
-          needles = Array.prototype.slice.call(arguments);
-          needles.shift();
-        }
-        for (var i = 0; i < needles.length; i++) {
-          if (haystack.lastIndexOf(needles[i], 0) === 0) {
-            return true;
-          }
-        }
-        return false;
-      },
-      
-      endsWith: function (haystack) {
-        var needles;
-        if (Array.isArray(arguments[1])) {
-          needles = arguments[1];
-        } else {
-          needles = Array.prototype.slice.call(arguments);
-          needles.shift();
-        }
-        for (var i = 0; i < needles.length; i++) {
-          if (haystack.substr(-needles[i].length) === needles[i]) {
-            return true;
-          }
-        }
-        return false;
-      },
-      
-      is: function (haystack) {
-        for (var i = 1; i < arguments.length; i++) {
-          if (haystack === arguments[i]) {
-            return true;
-          }
-        }
-        return false;
-      },
-      
-      fromDate: function (date) {
-        var year = date.getFullYear();
-        var month = date.getMonth() + 1;
-        var day = date.getDate();
-        return year + (month < 10 ? "0" : "") + month + (day < 10 ? "0" : "") + day;
+  .factory("ZZ", ["$log",
+  function ($log) {
+
+    var zzUnknown = function (e) {
+      this.e = e;
+    };
+    
+    zzUnknown.prototype = {
+    
+      isDefined: function () {
+        return typeof this.e !== "undefined";
       },
     
-      toDate: function (string) {
-        var year = parseInt(string.substring(0, 4), 10);
-        var month = parseInt(string.substring(4, 6), 10) - 1;
-        var day = parseInt(string.substring(6, 8), 10);
-        return new Date(year, month, day);
+      is: function () {
+        var needles = Array.isArray(arguments[0]) ? arguments[0] : arguments;
+        for (var i = 0; i < needles.length; i++) {
+          if (this.e === needles[i]) {
+            return true;
+          }
+        }
+        return false;
       },
       
-      hash: function (input) {
-        var output = 0;
-        for (var i = 0; i < input.length; i++) {
-          var c = input.charCodeAt(i);
-          output = ((output << 5) - output) + c;
-          output |= 0;
-        }
-        return output.toString();
+      get: function () {
+        return this.e;
       }
       
     };
+  
+    var zzString = function (e) {
+      zzUnknown.call(this, e);
+    };
+    zzString.prototype = Object.create(zzUnknown.prototype);
+    zzString.prototype.constructor = zzString;
+    
+    angular.extend(zzString.prototype, {
+    
+      startsWith: function () {
+        var prefixes = Array.isArray(arguments[0]) ? arguments[0] : arguments;
+        for (var i = 0; i < prefixes.length; i++) {
+          if (this.e.lastIndexOf(prefixes[i], 0) === 0) {
+            return true;
+          }
+        }
+        return false;
+      },
+      
+      endsWith: function () {
+        var prefixes = Array.isArray(arguments[0]) ? arguments[0] : arguments;
+        for (var i = 0; i < prefixes.length; i++) {
+          if (this.e.substr(-prefixes[i].length) === prefixes[i]) {
+            return true;
+          }
+        }
+        return false;
+      },
+      
+      contains: function () {
+        var needles = Array.isArray(arguments[0]) ? arguments[0] : arguments;
+        for (var i = 0; i < needles.length; i++) {
+          if (this.e.indexOf(needles[i]) >= 0) {
+            return true;
+          }
+        }
+        return false;
+      },
+      
+      toDate: function () {
+        var year = parseInt(this.e.substring(0, 4), 10);
+        var month = parseInt(this.e.substring(4, 6), 10) - 1;
+        var day = parseInt(this.e.substring(6, 8), 10);
+        return new Date(year, month, day);
+      },
+      
+      hash: function () {
+        var hash = 0;
+        for (var i = 0; i < this.e.length; i++) {
+          var c = this.e.charCodeAt(i);
+          hash = ((hash << 5) - hash) + c;
+          hash |= 0;
+        }
+        return hash.toString();
+      }
+    
+    });
+    
+    var zzArray = function (e) {
+      zzUnknown.call(this, e);
+    };
+    zzArray.prototype = Object.create(zzUnknown.prototype);
+    zzArray.constructor = zzArray;
+    
+    angular.extend(zzArray.prototype, {
+    
+      forEach: function (callback, defaultReturnValue, thisArg) {
+        for (var i = 0; i < this.e.length; i++) {
+          var output = callback.call(thisArg, this.e[i], i, this.e);
+          if (typeof output !== "undefined") {
+            return output;
+          }
+        }
+        return defaultReturnValue;
+      }
+    
+    });
+    
+    var zzStorage = function (e) {
+      zzUnknown.call(this, e);
+    };
+    zzStorage.prototype = Object.create(zzUnknown.prototype);
+    zzStorage.constructor = zzStorage;
+    
+    angular.extend(zzStorage.prototype, {
+    
+      forEach: function (callback, defaultReturnValue, thisArg) {
+        for (var i = 0; i < this.e.length; i++) {
+          var output = callback.call(context, this.e[k], k, this.e);
+          if (typeof output !== "undefined") {
+            return output;
+          }
+        }
+        return defaultReturnValue;
+      }
+    
+    });
+    
+    var zzObject = function (e) {
+      zzUnknown.call(this, e);
+    };
+    zzObject.prototype = Object.create(zzUnknown.prototype);
+    zzObject.constructor = zzObject;
+    
+    angular.extend(zzObject.prototype, {
+    
+      forEach: function (callback, defaultReturnValue, thisArg) {
+        for (var k in this.e) {
+          if (this.e.hasOwnProperty(k)) {
+            var output = callback.call(context, this.e[k], k, this.e);
+            if (typeof output !== "undefined") {
+              return output;
+            }
+          }
+        }
+        return defaultReturnValue;
+      },
+      
+      clear: function () {
+        for (var k in this.e) {
+          if (this.e.hasOwnProperty(k)) {
+            delete this.e[k];
+          }
+        }
+      }
+    
+    });
+    
+    var zzDate = function (e) {
+      zzUnknown.call(this, e);
+    };
+    zzDate.prototype = Object.create(zzUnknown.prototype);
+    zzDate.prototype.constructor = zzDate;
+    
+    angular.extend(zzDate.prototype, {
+    
+      format: function () {
+        var year = this.e.getFullYear();
+        var month = this.e.getMonth() + 1;
+        var day = this.e.getDate();
+        return year + (month < 10 ? "0" : "") + month + (day < 10 ? "0" : "") + day;
+      },
+      
+      removeTime: function () {
+        return ZZ(this.format()).toDate();
+      },
+      
+      getNumberOfDaysBetween: function (other) {
+        return Math.round(Math.abs(this.e - other)) / (1000 * 60 * 60 * 24);
+      }
+    
+    });
+    
+    var ZZ = function (e) {
+      switch (Object.prototype.toString.call(e)) {
+      case "[object String]":
+        return new zzString(e);
+      case "[object Date]":
+        return new zzDate(e);
+      case "[object Array]":
+        return new zzArray(e);
+      case "[object Object]":
+        return new zzObject(e);
+      case "[object Storage]":
+        return new zzStorage(e);
+      case "[object Null]":
+        $log.debug("element is null");
+        return new zzUnknown(e);
+      case "[object Undefined]":
+        $log.debug("element is undefined");
+        return new zzUnknown(e);
+      default:
+        return new zzUnknown(e);
+      }
+    };
+  
+    return ZZ;
+  
   }])
   
   /**
@@ -293,13 +429,13 @@
     var reservedPrefixes = [ENTRY_PREFIX];
 
     var $log;
-    var StringUtils;
+    var ZZ;
     var versionEntry;
     var firstWeakEntryPointer;
     var lastWeakEntryPointer;
   
     var Entry = function (key) {
-      if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+      if (ZZ(key).startsWith(ENTRY_PREFIX)) {
         this.pristineKey = key.substring(ENTRY_PREFIX.length);
         this.key = key;
       } else {
@@ -367,24 +503,26 @@
     };
 
     Entry.create = function (key, weak) {
-      if (StringUtils.is(key, VERSION_ENTRY_NAME, FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME)) {
+      var zzKey = ZZ(key);
+      if (zzKey.is(VERSION_ENTRY_NAME, FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME)) {
         throw new Error("Reserved keys: " + VERSION_ENTRY_NAME + ", " + FIRST_WEAK_ENTRY_POINTER_NAME + ", " + LAST_WEAK_ENTRY_POINTER_NAME);
-      } else if (StringUtils.endsWith(key, PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
+      } else if (zzKey.endsWith(PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
         throw new Error("Reserved suffixes: " + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX + ", " + NEXT_WEAK_ENTRY_POINTER_SUFFIX + ", " + WEAK_ENTRIES_DATE_ENTRY_SUFFIX);
-      } else if (StringUtils.startsWith(key, reservedPrefixes)) {
+      } else if (zzKey.startsWith(reservedPrefixes)) {
         throw new Error("Reserved prefixes: " + reservedPrefixes.join(", "));
       }
       return weak ? new Entry.Weak(key) : new Entry(key);
     };
 
     Entry.find = function (key) {
-      if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+      var zzKey = ZZ(key);
+      if (zzKey.startsWith(ENTRY_PREFIX)) {
         return new Entry.Transient(key);
-      } else if (StringUtils.is(key, VERSION_ENTRY_NAME)) {
+      } else if (zzKey.is(VERSION_ENTRY_NAME)) {
         return new Entry.Version(key);
-      } else if (StringUtils.is(key, FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME) || StringUtils.endsWith(key, PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX)) {
+      } else if (zzKey.is(FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME) || zzKey.endsWith(PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX)) {
         return new Entry.Weak.Pointer(key);
-      } else if (StringUtils.endsWith(key, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
+      } else if (zzKey.endsWith(WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
         return new Entry.Weak.Date(key);
       } else {
         var entry = new Entry.Weak(key);
@@ -418,7 +556,7 @@
     angular.extend(Entry.Weak.prototype, {
           
       isObsolete: function () {
-        return Math.round((StringUtils.toDate(StringUtils.fromDate(new Date())) - StringUtils.toDate(this.getDateEntry().getString())) / (1000 * 60 * 60 * 24)) > weakEntriesLifetimeInDays;
+        return ZZ(ZZ(new Date()).removeTime()).getNumberOfDaysBetween(ZZ(this.getDateEntry().getString()).toDate()) > weakEntriesLifetimeInDays;
       },
       
       getPreviousWeakEntryPointer: function () {
@@ -454,7 +592,7 @@
           this.getPreviousWeakEntryPointer().setString(lastWeakEntry);
         }
         lastWeakEntryPointer.setString(this);
-        this.getDateEntry().setString(StringUtils.fromDate(new Date()));
+        this.getDateEntry().setString(ZZ(new Date()).format());
         Entry.prototype.setObject.call(this, value);
       },
       
@@ -579,7 +717,7 @@
         var count = 0;
         for (var i = 0; i < localStorage.length; i++) {
           var key = localStorage.key(i);
-          if (startsWith(key, ENTRY_PREFIX) && key !== versionEntry.key) {
+          if (key !== versionEntry.key && ZZ(key).startsWith(ENTRY_PREFIX)) {
             localStorage.removeItem(key);
             count++;
             i--;
@@ -591,7 +729,7 @@
       forEach: function (callback) {
         for (var i = 0; i < localStorage.length; i++) {
           var key = localStorage.key(i);
-          if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+          if (ZZ(key).startsWith(ENTRY_PREFIX)) {
             var entry = Entry.find(key.substring(ENTRY_PREFIX.length));
             if (entry.isUserAccessible()) {
               callback(entry.pristineKey, entry.getObject(false));
@@ -602,9 +740,9 @@
 
     };
     
-    var init = function (new$log, newStringUtils) {
+    var init = function (new$log, newZZ) {
       $log = new$log;
-      StringUtils = newStringUtils;
+      ZZ = newZZ;
       versionEntry = new Entry.Version(VERSION_ENTRY_NAME);
       firstWeakEntryPointer = new Entry.Weak.Pointer(FIRST_WEAK_ENTRY_POINTER_NAME);
       lastWeakEntryPointer = new Entry.Weak.Pointer(LAST_WEAK_ENTRY_POINTER_NAME);
@@ -631,9 +769,9 @@
         reservedPrefixes.push(ENTRY_PREFIX + reservedPrefix);
       },
     
-      $get: ["$log", "StringUtils",
-      function ($log, StringUtils) {
-        init($log, StringUtils);
+      $get: ["$log", "ZZ",
+      function ($log, ZZ) {
+        init($log, ZZ);
         return API;
       }]
       
@@ -653,8 +791,8 @@
     
     return {
       
-      $get: ["$q", "$log", "LocalRepository", "StringUtils",
-      function ($q, $log, LocalRepository, StringUtils) {
+      $get: ["$q", "$log", "LocalRepository", "ZZ",
+      function ($q, $log, LocalRepository, ZZ) {
         
         var getDataUrl = function (imageUrl, imageType, imageQuality) {
           var deferred = $q.defer();
@@ -698,7 +836,7 @@
           
           forEach: function (callback) {
             LocalRepository.forEach(function (key) {
-              if (StringUtils.startsWith(key, ENTRY_PREFIX)) {
+              if (ZZ(key).startsWith(ENTRY_PREFIX)) {
                 callback(key.substring(ENTRY_PREFIX.length));
               }
             });
