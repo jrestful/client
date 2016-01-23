@@ -794,6 +794,8 @@
       $get: ["$q", "$log", "LocalRepository", "ZZ",
       function ($q, $log, LocalRepository, ZZ) {
         
+        var _currentlyCaching = {};
+        
         var _getDataUrl = function (imageUrl, imageType, imageQuality) {
           var deferred = $q.defer();
           var image = new Image();
@@ -827,11 +829,29 @@
           },
           
           cache: function (key, imageUrl, weak, imageType, imageQuality) {
-            return _getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
-              $log.debug("Image " + key + " (" + imageUrl + ") cached");
-              LocalRepository.set(ENTRY_PREFIX + key, dataUrl, weak);
-              return dataUrl;
-            });
+            if (_currentlyCaching[key]) {
+              $log.debug("Caching image " + key + " (" + imageUrl + ") already in progress");
+              return _currentlyCaching[key];
+            } else {
+              var deferred = $q.defer();
+              if (ImageCache.has(key)) {
+                $log.debug("Image " + key + " (" + imageUrl + ") already cached");
+                deferred.resolve(ImageCache.get(key));
+              } else {
+                _currentlyCaching[key] = deferred.promise;
+                _getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
+                  $log.debug("Image " + key + " (" + imageUrl + ") cached");
+                  LocalRepository.set(ENTRY_PREFIX + key, dataUrl, weak);
+                  deferred.resolve(dataUrl);
+                  delete _currentlyCaching[key];
+                }, function () {
+                  $log.debug("Could not cache image " + key + " (" + imageUrl + ")");
+                  deferred.reject();
+                  delete _currentlyCaching[key];
+                })
+              }
+              return deferred.promise;
+            }
           },
           
           forEach: function (callback) {
