@@ -47,15 +47,15 @@
   
     var _userProfile = {};
     
-    var fetchUserProfile = function () {
-      var _deferred = $q.defer();
+    var _fetchUserProfile = function () {
+      var deferred = $q.defer();
       Auth.getProfile(function (response) {
         
         ZZ(_userProfile).clear();
         
-        _deferred.resolve(angular.extend(_userProfile, response, {
+        deferred.resolve(angular.extend(_userProfile, response, {
           
-          $refresh: fetchUserProfile,
+          $refresh: _fetchUserProfile,
           
           $hasRole: function (role) {
             return _userProfile.roles.indexOf(role) >= 0;
@@ -81,12 +81,12 @@
         $rootScope.$broadcast("userProfileFetched", _userProfile);
         
       }, function () {
-        _deferred.reject();
+        deferred.reject();
       });
-      return _deferred.promise;
+      return deferred.promise;
     };
   
-    return fetchUserProfile();
+    return _fetchUserProfile();
   
   }])
   

@@ -18,33 +18,33 @@
     var $ionicHistory = $injector.get("$ionicHistory");
     var $log = $injector.get("$log");
     
-    var _clearCache = false;
-    var _clearHistory = false;
+    var clearCache = false;
+    var clearHistory = false;
     
     $rootScope.$on("$stateChangeSuccess", function (event, toState) {
       if (toState.name) {
         if (toState.clearCache) {
-          _clearCache = true;
+          clearCache = true;
         }
         if (toState.clearHistory) {
           $ionicHistory.nextViewOptions({
             historyRoot: true
           });
-          _clearHistory = true;
+          clearHistory = true;
         }
       }
     });
     
     $rootScope.$on("$ionicView.enter", function () {
-      if (_clearCache) {
-        _clearCache = false;
+      if (clearCache) {
+        clearCache = false;
         $ionicHistory.clearCache().then(function () {
           $log.debug("Cache cleared");
           $rootScope.$broadcast("cacheCleared");
         });
       }
-      if (_clearHistory) {
-        _clearHistory = false;
+      if (clearHistory) {
+        clearHistory = false;
         $log.debug("History cleared");
         $rootScope.$broadcast("historyCleared");
       }

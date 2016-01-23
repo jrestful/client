@@ -27,12 +27,12 @@
       $httpProvider.defaults.xsrfCookieName = Security.csrf.cookieName;
       
       // credits to https://gist.github.com/jed/982883:
-      var _uuid = function (e){ return e ? (e ^ Math.random() * 16 >> e/4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, _uuid); };
+      var uuid = function (e){ return e ? (e ^ Math.random() * 16 >> e/4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, uuid); };
       
       $httpProvider.interceptors.push(function () {
         return {
           request: function (config) {
-            document.cookie = Security.csrf.cookieName + "=" + _uuid();
+            document.cookie = Security.csrf.cookieName + "=" + uuid();
             return config;
           }
         };
@@ -338,22 +338,22 @@
     
     var _handleLinks = function (data) {
     
-      var _linkCache = {};
-      var _linksCache = {};
+      var linkCache = {};
+      var linksCache = {};
       
       data.$hasLink = function (rel) {
         return data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel]);
       };
       
       data.$link = function (rel) {
-        if (!_linkCache.hasOwnProperty(rel)) {
+        if (!linkCache.hasOwnProperty(rel)) {
           if (data.$hasLink(rel)) {
-            _linkCache[rel] = _linkFactory(rel, data._links[rel]);
+            linkCache[rel] = _linkFactory(rel, data._links[rel]);
           } else {
             throw new Error("Link '" + rel + "' not found");
           }
         }
-        return _linkCache[rel];
+        return linkCache[rel];
       };
       
       data.$hasLinks = function (rel) {
@@ -361,16 +361,16 @@
       };
       
       data.$links = function (rel) {
-        if (!_linksCache.hasOwnProperty(rel)) {
+        if (!linksCache.hasOwnProperty(rel)) {
           if (data.$hasLinks(rel)) {
-            _linksCache[rel] = data._links[rel].map(function (link, i) {
+            linksCache[rel] = data._links[rel].map(function (link, i) {
               return _linkFactory(rel + "[" + i + "]", link);
             });
           } else {
             throw new Error("Links '" + rel + "' not found");
           }
         }
-        return _linksCache[rel];
+        return linksCache[rel];
       };
           
     };
@@ -378,13 +378,13 @@
     var _handleEmbedded = function (data) {
       if (data._embedded) {
           
-        var _handled = false;
+        var handled = false;
         data.$embedded = function () {
-          if (!_handled) {
+          if (!handled) {
             angular.forEach(data._embedded, function (data) {
               _handleLinks(data);
             });
-            _handled = true;
+            handled = true;
           }
           return data._embedded;
         };
