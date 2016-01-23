@@ -5,46 +5,46 @@
   /**
    * Called in a configuration block, $injector belongs to the calling module.
    */
-  var config = function ($injector) {
+  var _config = function ($injector) {
     // no-op
   };
   
   /**
-   * Called in a run block, $injector belongs to the calling module.
+   * Called in a _run block, $injector belongs to the calling module.
    */
-  var run = function ($injector) {
+  var _run = function ($injector) {
     
     var $rootScope = $injector.get("$rootScope");
     var $ionicHistory = $injector.get("$ionicHistory");
     var $log = $injector.get("$log");
     
-    var clearCache = false;
-    var clearHistory = false;
+    var _clearCache = false;
+    var _clearHistory = false;
     
     $rootScope.$on("$stateChangeSuccess", function (event, toState) {
       if (toState.name) {
         if (toState.clearCache) {
-          clearCache = true;
+          _clearCache = true;
         }
         if (toState.clearHistory) {
           $ionicHistory.nextViewOptions({
             historyRoot: true
           });
-          clearHistory = true;
+          _clearHistory = true;
         }
       }
     });
     
     $rootScope.$on("$ionicView.enter", function () {
-      if (clearCache) {
-        clearCache = false;
+      if (_clearCache) {
+        _clearCache = false;
         $ionicHistory.clearCache().then(function () {
           $log.debug("Cache cleared");
           $rootScope.$broadcast("cacheCleared");
         });
       }
-      if (clearHistory) {
-        clearHistory = false;
+      if (_clearHistory) {
+        _clearHistory = false;
         $log.debug("History cleared");
         $rootScope.$broadcast("historyCleared");
       }
@@ -58,12 +58,12 @@
   angular.module("jrestful.core.ionic", ["jrestful.core"])
 
   /**
-   * Initializer, extends <code>jrestfulProvider</code> <code>config</code> method to be called in a configuration block, and
-   * <code>jrestfulProvider</code> <code>run</code> method to be called in a run block.
+   * Initializer, extends <code>jrestfulProvider</code> <code>$config</code> method to be called in a configuration block, and
+   * <code>jrestfulProvider</code> <code>$run</code> method to be called in a _run block.
    */
   .config(["jrestfulProvider",
   function (jrestfulProvider) {
-    jrestfulProvider.$extend(config, run);
+    jrestfulProvider.$extend(_config, _run);
   }]);
   
 })(angular);

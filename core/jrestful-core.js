@@ -8,7 +8,7 @@
   /**
    * Called in a configuration block, $injector belongs to the calling module.
    */
-  var config = function ($injector) {
+  var _config = function ($injector) {
     
     var Security = $injector.has("Security") ? $injector.get("Security") : {};
     var $httpProvider = $injector.get("$httpProvider");
@@ -27,12 +27,12 @@
       $httpProvider.defaults.xsrfCookieName = Security.csrf.cookieName;
       
       // credits to https://gist.github.com/jed/982883:
-      var uuid = function (e){ return e ? (e ^ Math.random() * 16 >> e/4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, uuid); };
+      var _uuid = function (e){ return e ? (e ^ Math.random() * 16 >> e/4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, _uuid); };
       
       $httpProvider.interceptors.push(function () {
         return {
           request: function (config) {
-            document.cookie = Security.csrf.cookieName + "=" + uuid();
+            document.cookie = Security.csrf.cookieName + "=" + _uuid();
             return config;
           }
         };
@@ -45,7 +45,7 @@
   /**
    * Called in a run block, $injector belongs to the calling module.
    */
-  var run = function ($injector) {
+  var _run = function ($injector) {
     // no-op
   };
   
@@ -60,11 +60,11 @@
   .factory("ZZ", ["$log",
   function ($log) {
 
-    var zzUnknown = function (e) {
+    var _zzUnknown = function (e) {
       this.e = e;
     };
     
-    zzUnknown.prototype = {
+    _zzUnknown.prototype = {
     
       isDefined: function () {
         return typeof this.e !== "undefined";
@@ -86,13 +86,13 @@
       
     };
   
-    var zzString = function (e) {
-      zzUnknown.call(this, e);
+    var _zzString = function (e) {
+      _zzUnknown.call(this, e);
     };
-    zzString.prototype = Object.create(zzUnknown.prototype);
-    zzString.prototype.constructor = zzString;
+    _zzString.prototype = Object.create(_zzUnknown.prototype);
+    _zzString.prototype.constructor = _zzString;
     
-    angular.extend(zzString.prototype, {
+    angular.extend(_zzString.prototype, {
     
       startsWith: function () {
         var prefixes = Array.isArray(arguments[0]) ? arguments[0] : arguments;
@@ -143,13 +143,13 @@
     
     });
     
-    var zzArray = function (e) {
-      zzUnknown.call(this, e);
+    var _zzArray = function (e) {
+      _zzUnknown.call(this, e);
     };
-    zzArray.prototype = Object.create(zzUnknown.prototype);
-    zzArray.constructor = zzArray;
+    _zzArray.prototype = Object.create(_zzUnknown.prototype);
+    _zzArray.constructor = _zzArray;
     
-    angular.extend(zzArray.prototype, {
+    angular.extend(_zzArray.prototype, {
     
       forEach: function (callback, defaultReturnValue, thisArg) {
         for (var i = 0; i < this.e.length; i++) {
@@ -163,13 +163,13 @@
     
     });
     
-    var zzStorage = function (e) {
-      zzUnknown.call(this, e);
+    var _zzStorage = function (e) {
+      _zzUnknown.call(this, e);
     };
-    zzStorage.prototype = Object.create(zzUnknown.prototype);
-    zzStorage.constructor = zzStorage;
+    _zzStorage.prototype = Object.create(_zzUnknown.prototype);
+    _zzStorage.constructor = _zzStorage;
     
-    angular.extend(zzStorage.prototype, {
+    angular.extend(_zzStorage.prototype, {
     
       forEach: function (callback, defaultReturnValue, thisArg) {
         for (var i = 0; i < this.e.length; i++) {
@@ -183,13 +183,13 @@
     
     });
     
-    var zzObject = function (e) {
-      zzUnknown.call(this, e);
+    var _zzObject = function (e) {
+      _zzUnknown.call(this, e);
     };
-    zzObject.prototype = Object.create(zzUnknown.prototype);
-    zzObject.constructor = zzObject;
+    _zzObject.prototype = Object.create(_zzUnknown.prototype);
+    _zzObject.constructor = _zzObject;
     
-    angular.extend(zzObject.prototype, {
+    angular.extend(_zzObject.prototype, {
     
       forEach: function (callback, defaultReturnValue, thisArg) {
         for (var k in this.e) {
@@ -213,13 +213,13 @@
     
     });
     
-    var zzDate = function (e) {
-      zzUnknown.call(this, e);
+    var _zzDate = function (e) {
+      _zzUnknown.call(this, e);
     };
-    zzDate.prototype = Object.create(zzUnknown.prototype);
-    zzDate.prototype.constructor = zzDate;
+    _zzDate.prototype = Object.create(_zzUnknown.prototype);
+    _zzDate.prototype.constructor = _zzDate;
     
-    angular.extend(zzDate.prototype, {
+    angular.extend(_zzDate.prototype, {
     
       format: function () {
         var year = this.e.getFullYear();
@@ -241,23 +241,23 @@
     var ZZ = function (e) {
       switch (Object.prototype.toString.call(e)) {
       case "[object String]":
-        return new zzString(e);
+        return new _zzString(e);
       case "[object Date]":
-        return new zzDate(e);
+        return new _zzDate(e);
       case "[object Array]":
-        return new zzArray(e);
+        return new _zzArray(e);
       case "[object Object]":
-        return new zzObject(e);
+        return new _zzObject(e);
       case "[object Storage]":
-        return new zzStorage(e);
+        return new _zzStorage(e);
       case "[object Null]":
         $log.debug("element is null");
-        return new zzUnknown(e);
+        return new _zzUnknown(e);
       case "[object Undefined]":
         $log.debug("element is undefined");
-        return new zzUnknown(e);
+        return new _zzUnknown(e);
       default:
-        return new zzUnknown(e);
+        return new _zzUnknown(e);
       }
     };
   
@@ -317,7 +317,7 @@
   .factory("RestInterceptor", ["$injector",
   function ($injector) {
     
-    var linkFactory = function (rel, link) {
+    var _linkFactory = function (rel, link) {
       return {
         
         fetch: function (attr) {
@@ -336,24 +336,24 @@
       };
     };
     
-    var handleLinks = function (data) {
+    var _handleLinks = function (data) {
     
-      var linkCache = {};
-      var linksCache = {};
+      var _linkCache = {};
+      var _linksCache = {};
       
       data.$hasLink = function (rel) {
         return data._links.hasOwnProperty(rel) && !angular.isArray(data._links[rel]);
       };
       
       data.$link = function (rel) {
-        if (!linkCache.hasOwnProperty(rel)) {
+        if (!_linkCache.hasOwnProperty(rel)) {
           if (data.$hasLink(rel)) {
-            linkCache[rel] = linkFactory(rel, data._links[rel]);
+            _linkCache[rel] = _linkFactory(rel, data._links[rel]);
           } else {
             throw new Error("Link '" + rel + "' not found");
           }
         }
-        return linkCache[rel];
+        return _linkCache[rel];
       };
       
       data.$hasLinks = function (rel) {
@@ -361,30 +361,30 @@
       };
       
       data.$links = function (rel) {
-        if (!linksCache.hasOwnProperty(rel)) {
+        if (!_linksCache.hasOwnProperty(rel)) {
           if (data.$hasLinks(rel)) {
-            linksCache[rel] = data._links[rel].map(function (link, i) {
-              return linkFactory(rel + "[" + i + "]", link);
+            _linksCache[rel] = data._links[rel].map(function (link, i) {
+              return _linkFactory(rel + "[" + i + "]", link);
             });
           } else {
             throw new Error("Links '" + rel + "' not found");
           }
         }
-        return linksCache[rel];
+        return _linksCache[rel];
       };
           
     };
     
-    var handleEmbedded = function (data) {
+    var _handleEmbedded = function (data) {
       if (data._embedded) {
           
-        var handled = false;
+        var _handled = false;
         data.$embedded = function () {
-          if (!handled) {
+          if (!_handled) {
             angular.forEach(data._embedded, function (data) {
-              handleLinks(data);
+              _handleLinks(data);
             });
-            handled = true;
+            _handled = true;
           }
           return data._embedded;
         };
@@ -398,8 +398,8 @@
       response: function (response) {        
         var contentType = response.headers(CONTENT_TYPE_HEADER);
         if (contentType && contentType.indexOf(HAL_MEDIA_TYPE) >= 0) {
-          handleLinks(response.data);
-          handleEmbedded(response.data);
+          _handleLinks(response.data);
+          _handleEmbedded(response.data);
         }
         return response;
       }
@@ -415,26 +415,26 @@
   
     var VERSION_ENTRY_NAME = "v";
     var DEFAULT_VERSION = "-1";
-    var version = DEFAULT_VERSION;
+    var _version = DEFAULT_VERSION;
     
     var WEAK_ENTRIES_DATE_ENTRY_SUFFIX = ".d";
     var DEFAULT_WEAK_ENTRIES_LIFETIME_IN_DAYS = 30;
-    var weakEntriesLifetimeInDays = DEFAULT_WEAK_ENTRIES_LIFETIME_IN_DAYS;
+    var _weakEntriesLifetimeInDays = DEFAULT_WEAK_ENTRIES_LIFETIME_IN_DAYS;
     
     var ENTRY_PREFIX = "lr.";
     var FIRST_WEAK_ENTRY_POINTER_NAME = "f";
     var PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX = ".p";
     var NEXT_WEAK_ENTRY_POINTER_SUFFIX = ".n";
     var LAST_WEAK_ENTRY_POINTER_NAME = "l";
-    var reservedPrefixes = [ENTRY_PREFIX];
+    var _reservedPrefixes = [ENTRY_PREFIX];
 
     var $log;
     var ZZ;
-    var versionEntry;
-    var firstWeakEntryPointer;
-    var lastWeakEntryPointer;
+    var _versionEntry;
+    var _firstWeakEntryPointer;
+    var _lastWeakEntryPointer;
   
-    var Entry = function (key) {
+    var _Entry = function (key) {
       if (ZZ(key).startsWith(ENTRY_PREFIX)) {
         this.pristineKey = key.substring(ENTRY_PREFIX.length);
         this.key = key;
@@ -444,7 +444,7 @@
       }
     };
 
-    Entry.prototype = {
+    _Entry.prototype = {
       
       toString: function () {
         return this.key;
@@ -467,10 +467,10 @@
       },
       
       setString: function (value) {
-        if (value instanceof Entry.Weak.Pointer) {
+        if (value instanceof _Entry.Weak.Pointer) {
           value = value.getPointedWeakEntry();
         }
-        if (value instanceof Entry) {
+        if (value instanceof _Entry) {
           value = value.pristineKey;
         }
         var done = false;
@@ -479,7 +479,7 @@
             localStorage.setItem(this, value);
             done = true;
           } catch (e) {
-            if (Entry.Weak.removeOldest()) {
+            if (_Entry.Weak.removeOldest()) {
               $log.debug("Local storage quota exceeded when setting '" + this + "', oldest weak entry has been removed");
             } else {
               throw e;
@@ -502,44 +502,44 @@
       
     };
 
-    Entry.create = function (key, weak) {
+    _Entry.create = function (key, weak) {
       var zzKey = ZZ(key);
       if (zzKey.is(VERSION_ENTRY_NAME, FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME)) {
         throw new Error("Reserved keys: " + VERSION_ENTRY_NAME + ", " + FIRST_WEAK_ENTRY_POINTER_NAME + ", " + LAST_WEAK_ENTRY_POINTER_NAME);
       } else if (zzKey.endsWith(PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
         throw new Error("Reserved suffixes: " + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX + ", " + NEXT_WEAK_ENTRY_POINTER_SUFFIX + ", " + WEAK_ENTRIES_DATE_ENTRY_SUFFIX);
-      } else if (zzKey.startsWith(reservedPrefixes)) {
-        throw new Error("Reserved prefixes: " + reservedPrefixes.join(", "));
+      } else if (zzKey.startsWith(_reservedPrefixes)) {
+        throw new Error("Reserved prefixes: " + _reservedPrefixes.join(", "));
       }
-      return weak ? new Entry.Weak(key) : new Entry(key);
+      return weak ? new _Entry.Weak(key) : new _Entry(key);
     };
 
-    Entry.find = function (key) {
+    _Entry.find = function (key) {
       var zzKey = ZZ(key);
       if (zzKey.startsWith(ENTRY_PREFIX)) {
-        return new Entry.Transient(key);
+        return new _Entry.Transient(key);
       } else if (zzKey.is(VERSION_ENTRY_NAME)) {
-        return new Entry.Version(key);
+        return new _Entry.Version(key);
       } else if (zzKey.is(FIRST_WEAK_ENTRY_POINTER_NAME, LAST_WEAK_ENTRY_POINTER_NAME) || zzKey.endsWith(PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX)) {
-        return new Entry.Weak.Pointer(key);
+        return new _Entry.Weak.Pointer(key);
       } else if (zzKey.endsWith(WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
-        return new Entry.Weak.Date(key);
+        return new _Entry.Weak.Date(key);
       } else {
-        var entry = new Entry.Weak(key);
+        var entry = new _Entry.Weak(key);
         if (!entry.getDateEntry().exists()) {
-          entry = new Entry(key);
+          entry = new _Entry(key);
         }
         return entry;
       }
     };
     
-    Entry.Transient = function (key) {
-      Entry.call(this, key);
+    _Entry.Transient = function (key) {
+      _Entry.call(this, key);
     };
-    Entry.Transient.prototype = Object.create(Entry.prototype);
-    Entry.Transient.prototype.constructor = Entry.Transient;
+    _Entry.Transient.prototype = Object.create(_Entry.prototype);
+    _Entry.Transient.prototype.constructor = _Entry.Transient;
     
-    angular.extend(Entry.Transient.prototype, {
+    angular.extend(_Entry.Transient.prototype, {
       
       exists: function () {
         return false;
@@ -547,32 +547,32 @@
       
     });
 
-    Entry.Weak = function (key) {
-      Entry.call(this, key);
+    _Entry.Weak = function (key) {
+      _Entry.call(this, key);
     };  
-    Entry.Weak.prototype = Object.create(Entry.prototype);
-    Entry.Weak.prototype.constructor = Entry.Weak;
+    _Entry.Weak.prototype = Object.create(_Entry.prototype);
+    _Entry.Weak.prototype.constructor = _Entry.Weak;
 
-    angular.extend(Entry.Weak.prototype, {
+    angular.extend(_Entry.Weak.prototype, {
           
       isObsolete: function () {
-        return ZZ(ZZ(new Date()).removeTime()).getNumberOfDaysBetween(ZZ(this.getDateEntry().getString()).toDate()) > weakEntriesLifetimeInDays;
+        return ZZ(ZZ(new Date()).removeTime()).getNumberOfDaysBetween(ZZ(this.getDateEntry().getString()).toDate()) > _weakEntriesLifetimeInDays;
       },
       
       getPreviousWeakEntryPointer: function () {
-        return new Entry.Weak.Pointer(this + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX);
+        return new _Entry.Weak.Pointer(this + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX);
       },
       
       getNextWeakEntryPointer: function () {
-        return new Entry.Weak.Pointer(this + NEXT_WEAK_ENTRY_POINTER_SUFFIX);
+        return new _Entry.Weak.Pointer(this + NEXT_WEAK_ENTRY_POINTER_SUFFIX);
       },
       
       getDateEntry: function () {
-        return new Entry.Weak.Date(this + WEAK_ENTRIES_DATE_ENTRY_SUFFIX);
+        return new _Entry.Weak.Date(this + WEAK_ENTRIES_DATE_ENTRY_SUFFIX);
       },
       
       getObject: function (setAsLastWeakEntry) {
-        var value = Entry.prototype.getObject.call(this);
+        var value = _Entry.prototype.getObject.call(this);
         if (setAsLastWeakEntry && this.exists()) {
           this.setObject(value, true);
         }
@@ -583,17 +583,17 @@
         if (this.exists()) {
           this.remove();
         }
-        if (!firstWeakEntryPointer.exists()) {
-          firstWeakEntryPointer.setString(this);
+        if (!_firstWeakEntryPointer.exists()) {
+          _firstWeakEntryPointer.setString(this);
         }
-        if (lastWeakEntryPointer.exists()) {
-          var lastWeakEntry = lastWeakEntryPointer.getPointedWeakEntry();
+        if (_lastWeakEntryPointer.exists()) {
+          var lastWeakEntry = _lastWeakEntryPointer.getPointedWeakEntry();
           lastWeakEntry.getNextWeakEntryPointer().setString(this);
           this.getPreviousWeakEntryPointer().setString(lastWeakEntry);
         }
-        lastWeakEntryPointer.setString(this);
+        _lastWeakEntryPointer.setString(this);
         this.getDateEntry().setString(ZZ(new Date()).format());
-        Entry.prototype.setObject.call(this, value);
+        _Entry.prototype.setObject.call(this, value);
       },
       
       remove: function () {
@@ -607,43 +607,43 @@
               previousEntryPointer.remove();
               nextEntryPointer.remove();
             } else {
-              lastWeakEntryPointer.setString(previousEntryPointer);
-              lastWeakEntryPointer.getPointedWeakEntry().getNextWeakEntryPointer().remove();
+              _lastWeakEntryPointer.setString(previousEntryPointer);
+              _lastWeakEntryPointer.getPointedWeakEntry().getNextWeakEntryPointer().remove();
               previousEntryPointer.remove();
             }
           } else if (nextEntryPointer.exists()) {
-            firstWeakEntryPointer.setString(nextEntryPointer);
-            firstWeakEntryPointer.getPointedWeakEntry().getPreviousWeakEntryPointer().remove();
+            _firstWeakEntryPointer.setString(nextEntryPointer);
+            _firstWeakEntryPointer.getPointedWeakEntry().getPreviousWeakEntryPointer().remove();
             nextEntryPointer.remove();
           } else {
-            firstWeakEntryPointer.remove();
+            _firstWeakEntryPointer.remove();
             previousEntryPointer.remove();
             nextEntryPointer.remove();
-            lastWeakEntryPointer.remove();
+            _lastWeakEntryPointer.remove();
           }
           this.getDateEntry().remove();
         }
-        Entry.prototype.remove.call(this);
+        _Entry.prototype.remove.call(this);
       }
       
     });
 
-    Entry.Weak.removeOldest = function () {
+    _Entry.Weak.removeOldest = function () {
       var removed = false;
-      if (firstWeakEntryPointer.exists()) {
-        firstWeakEntryPointer.getPointedWeakEntry().remove();
+      if (_firstWeakEntryPointer.exists()) {
+        _firstWeakEntryPointer.getPointedWeakEntry().remove();
         removed = true;
       }
       return removed;
     };
 
-    Entry.Weak.Date = function (key) {
-      Entry.call(this, key);
+    _Entry.Weak.Date = function (key) {
+      _Entry.call(this, key);
     };  
-    Entry.Weak.Date.prototype = Object.create(Entry.prototype);
-    Entry.Weak.Date.prototype.constructor = Entry.Weak.Date;
+    _Entry.Weak.Date.prototype = Object.create(_Entry.prototype);
+    _Entry.Weak.Date.prototype.constructor = _Entry.Weak.Date;
 
-    angular.extend(Entry.Weak.Date.prototype, {
+    angular.extend(_Entry.Weak.Date.prototype, {
 
       isUserAccessible: function () {
         return false;
@@ -651,13 +651,13 @@
       
     });
 
-    Entry.Version = function (key) {
-      Entry.call(this, key);
+    _Entry.Version = function (key) {
+      _Entry.call(this, key);
     };  
-    Entry.Version.prototype = Object.create(Entry.prototype);
-    Entry.Version.prototype.constructor = Entry.Version;
+    _Entry.Version.prototype = Object.create(_Entry.prototype);
+    _Entry.Version.prototype.constructor = _Entry.Version;
 
-    angular.extend(Entry.Version.prototype, {
+    angular.extend(_Entry.Version.prototype, {
 
       isUserAccessible: function () {
         return false;
@@ -665,51 +665,51 @@
       
     });
         
-    Entry.Weak.Pointer = function (key) {
-      Entry.call(this, key);
+    _Entry.Weak.Pointer = function (key) {
+      _Entry.call(this, key);
     };  
-    Entry.Weak.Pointer.prototype = Object.create(Entry.prototype);
-    Entry.Weak.Pointer.prototype.constructor = Entry.Weak.Pointer;
+    _Entry.Weak.Pointer.prototype = Object.create(_Entry.prototype);
+    _Entry.Weak.Pointer.prototype.constructor = _Entry.Weak.Pointer;
 
-    angular.extend(Entry.Weak.Pointer.prototype, {
+    angular.extend(_Entry.Weak.Pointer.prototype, {
 
       isUserAccessible: function () {
         return false;
       },
 
       getPointedWeakEntry: function () {
-        return new Entry.Weak(this.getString());
+        return new _Entry.Weak(this.getString());
       }
       
     });
 
-    var API = {
+    var LocalRepository = {
         
       has: function (key) {
-        return Entry.find(key).isUserAccessible();
+        return _Entry.find(key).isUserAccessible();
       },
       
       set: function (key, value, weak) {
-        Entry.create(key, weak).setObject(value);
+        _Entry.create(key, weak).setObject(value);
       },
       
       remove: function (key) {
-        var entry = Entry.find(key);
+        var entry = _Entry.find(key);
         if (entry.isUserAccessible()) {
           entry.remove();
         }
       },
       
       get: function (key) {
-        var entry = Entry.find(key);
+        var entry = _Entry.find(key);
         if (entry.isUserAccessible()) {
           return entry.getObject(true);
         }
       },
       
       clearObsoleteWeakEntries: function () {
-        while (firstWeakEntryPointer.exists() && firstWeakEntryPointer.getPointedWeakEntry().isObsolete()) {
-          firstWeakEntryPointer.getPointedWeakEntry().remove();
+        while (_firstWeakEntryPointer.exists() && _firstWeakEntryPointer.getPointedWeakEntry().isObsolete()) {
+          _firstWeakEntryPointer.getPointedWeakEntry().remove();
         }
       },
       
@@ -717,7 +717,7 @@
         var count = 0;
         for (var i = 0; i < localStorage.length; i++) {
           var key = localStorage.key(i);
-          if (key !== versionEntry.key && ZZ(key).startsWith(ENTRY_PREFIX)) {
+          if (key !== _versionEntry.key && ZZ(key).startsWith(ENTRY_PREFIX)) {
             localStorage.removeItem(key);
             count++;
             i--;
@@ -730,7 +730,7 @@
         for (var i = 0; i < localStorage.length; i++) {
           var key = localStorage.key(i);
           if (ZZ(key).startsWith(ENTRY_PREFIX)) {
-            var entry = Entry.find(key.substring(ENTRY_PREFIX.length));
+            var entry = _Entry.find(key.substring(ENTRY_PREFIX.length));
             if (entry.isUserAccessible()) {
               callback(entry.pristineKey, entry.getObject(false));
             }
@@ -740,39 +740,39 @@
 
     };
     
-    var init = function (new$log, newZZ) {
+    var _init = function (new$log, newZZ) {
       $log = new$log;
       ZZ = newZZ;
-      versionEntry = new Entry.Version(VERSION_ENTRY_NAME);
-      firstWeakEntryPointer = new Entry.Weak.Pointer(FIRST_WEAK_ENTRY_POINTER_NAME);
-      lastWeakEntryPointer = new Entry.Weak.Pointer(LAST_WEAK_ENTRY_POINTER_NAME);
-      if (!versionEntry.exists() || versionEntry.getString() !== version) {
+      _versionEntry = new _Entry.Version(VERSION_ENTRY_NAME);
+      _firstWeakEntryPointer = new _Entry.Weak.Pointer(FIRST_WEAK_ENTRY_POINTER_NAME);
+      _lastWeakEntryPointer = new _Entry.Weak.Pointer(LAST_WEAK_ENTRY_POINTER_NAME);
+      if (!_versionEntry.exists() || _versionEntry.getString() !== _version) {
         localStorage.clear();
-        versionEntry.setString(version);
-        $log.debug("LocalRepository initialized to version '" + version + "'");
+        _versionEntry.setString(_version);
+        $log.debug("LocalRepository initialized to _version '" + _version + "'");
       } else {
-        API.clearObsoleteWeakEntries();
+        LocalRepository.clearObsoleteWeakEntries();
       }
     };
     
     return {
     
-      setVersion: function (newVersion) {
-        version = newVersion;
+      setVersion: function (version) {
+        _version = version;
       },
       
-      setWeakEntriesLifetimeInDays: function (newWeakEntriesLifetimeInDays) {
-        weakEntriesLifetimeInDays = newWeakEntriesLifetimeInDays;
+      setWeakEntriesLifetimeInDays: function (weakEntriesLifetimeInDays) {
+        _weakEntriesLifetimeInDays = weakEntriesLifetimeInDays;
       },
       
       addReservedPrefix: function (reservedPrefix) {
-        reservedPrefixes.push(ENTRY_PREFIX + reservedPrefix);
+        _reservedPrefixes.push(ENTRY_PREFIX + reservedPrefix);
       },
     
       $get: ["$log", "ZZ",
       function ($log, ZZ) {
-        init($log, ZZ);
-        return API;
+        _init($log, ZZ);
+        return LocalRepository;
       }]
       
     };
@@ -794,7 +794,7 @@
       $get: ["$q", "$log", "LocalRepository", "ZZ",
       function ($q, $log, LocalRepository, ZZ) {
         
-        var getDataUrl = function (imageUrl, imageType, imageQuality) {
+        var _getDataUrl = function (imageUrl, imageType, imageQuality) {
           var deferred = $q.defer();
           var image = new Image();
           image.crossOrigin = "anonymous";
@@ -812,7 +812,7 @@
           return deferred.promise;
         };
         
-        var API = {
+        var ImageCache = {
         
           has: function (key) {
             return LocalRepository.has(ENTRY_PREFIX + key);
@@ -827,7 +827,7 @@
           },
           
           cache: function (key, imageUrl, weak, imageType, imageQuality) {
-            return getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
+            return _getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
               $log.debug("Image " + key + " (" + imageUrl + ") cached");
               LocalRepository.set(ENTRY_PREFIX + key, dataUrl, weak);
               return dataUrl;
@@ -844,17 +844,17 @@
           
           clear: function () {
             var keys = [];
-            API.forEach(function (key) {
+            ImageCache.forEach(function (key) {
               keys.push(key);
             });
             angular.forEach(keys, function (key) {
-              API.remove(key);
+              ImageCache.remove(key);
             });
           }
           
         };
         
-        return API;
+        return ImageCache;
         
       }]
       
@@ -895,11 +895,11 @@
         
       },
       
-      $config: config,
+      $config: _config,
       
       $get: function () {
         return {
-          $run: run
+          $run: _run
         };
       }
       

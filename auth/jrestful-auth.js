@@ -5,14 +5,14 @@
   /**
    * Called in a configuration block, $injector belongs to the calling module.
    */
-  var config = function ($injector) {
+  var _config = function ($injector) {
     // no-op
   };
   
   /**
-   * Called in a run block, $injector belongs to the calling module.
+   * Called in a _run block, $injector belongs to the calling module.
    */
-  var run = function ($injector) {
+  var _run = function ($injector) {
     
     var Security = $injector.has("Security") ? $injector.get("Security") : {};
     var $rootScope = $injector.get("$rootScope");
@@ -45,43 +45,45 @@
   .factory("UserProfile", ["$q", "$rootScope", "$log", "Auth", "ZZ",
   function ($q, $rootScope, $log, Auth, ZZ) {
   
-    var userProfile = {};
+    var _userProfile = {};
     
     var fetchUserProfile = function () {
-      var deferred = $q.defer();
+      var _deferred = $q.defer();
       Auth.getProfile(function (response) {
         
-        ZZ(userProfile).clear();
+        ZZ(_userProfile).clear();
         
-        deferred.resolve(angular.extend(userProfile, response, {
+        _deferred.resolve(angular.extend(_userProfile, response, {
           
           $refresh: fetchUserProfile,
           
           $hasRole: function (role) {
-            return userProfile.roles.indexOf(role) >= 0;
+            return _userProfile.roles.indexOf(role) >= 0;
           },
     
           $hasAnyRole: function (roles) {
-            return !!userProfile.roles.filter(function (role) {
+            return !!_userProfile.roles.filter(function (role) {
               return roles.indexOf(role) >= 0;
             }).length;
           },
     
           $isAnonymous: function () {
-            return userProfile.anonymous;
+            return _userProfile.anonymous;
           },
     
           $isAuthenticated: function () {
-            return !userProfile.anonymous;
+            return !_userProfile.anonymous;
           }
           
         }));
         
         $log.debug("User profile fetched");
-        $rootScope.$broadcast("userProfileFetched", userProfile);
+        $rootScope.$broadcast("userProfileFetched", _userProfile);
         
+      }, function () {
+        _deferred.reject();
       });
-      return deferred.promise;
+      return _deferred.promise;
     };
   
     return fetchUserProfile();
@@ -159,12 +161,12 @@
   }])
 
   /**
-   * Initializer, extends <code>jrestfulProvider</code> <code>config</code> method to be called in a configuration block, and
-   * <code>jrestfulProvider</code> <code>run</code> method to be called in a run block.
+   * Initializer, extends <code>jrestfulProvider</code> <code>$config</code> method to be called in a configuration block, and
+   * <code>jrestfulProvider</code> <code>$run</code> method to be called in a _run block.
    */
   .config(["jrestfulProvider",
   function (jrestfulProvider) {
-    jrestfulProvider.$extend(config, run);
+    jrestfulProvider.$extend(_config, _run);
   }]);
   
 })(angular);
