@@ -881,6 +881,115 @@
     };
     
   }])
+  
+  /**
+   * Utility directive to use Daniel Eden's animate.css library, requires jQuery UI.
+   */
+  .directive("jrfAnimate", [
+  function () {
+    
+    return {
+      
+      restrict: "A",
+      
+      scope: {
+        object: "=jrfAnimate",
+        animationName: "@jrfAnimation"
+      },
+      
+      link: function (scope, element, attributes) {
+        if (typeof $.prototype.zIndex !== "function") {
+          return;
+        }
+        var $element = $(element).removeClass("animated");
+        var zIndex = $element.zIndex();
+        var tempZIndex = zIndex + 1;
+        scope.$watch("object.animate", function (animate) {
+          if (animate) {
+            $element.zIndex(tempZIndex).addClass("animated " + scope.animationName)
+            .one("webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend", function () {
+              $element.zIndex(zIndex).removeClass("animated " + scope.animationName);
+              scope.$apply(function () {
+                delete scope.object.animate;
+              });
+            });
+          }
+        });
+      }
+    
+    };
+  
+  }])
+  
+  /**
+   * Builds a countdown, requires Evan Hahn's Humanize Duration library.
+   */
+  .directive("jrfCountdown", ["$timeout",
+  function ($timeout) {
+    
+    return {
+      
+      restrict: "E",
+      
+      replace: true,
+      
+      scope: {
+        date: "@jrfDate",
+        language: "@jrfLanguage"
+      },
+      
+      template: '<span class="jrf-countdown" ng-bind="countdown"></span>',
+      
+      link: function (scope, element, attributes) {
+        if (typeof humanizeDuration !== "function") {
+          return;
+        }
+        var to = Date.parse(scope.date);
+        var options = { round: true, language: scope.language || "en" };
+        (function setCountdown() {
+          var delta = Math.max(to - Date.now(), 0);
+          scope.countdown = humanizeDuration(delta, options);
+          if (delta > 0) {
+            $timeout(setCountdown, 1000);
+          }
+        })();
+      }
+    
+    };
+  
+  }])
+  
+  /**
+   * Builds an img tag from an Image instance.
+   */
+  .directive("jrfImage", [
+  function () {
+    
+    return {
+      
+      restrict: "E",
+      
+      scope: {
+        src: "=src"
+      },
+      
+      link: function (scope, element, attributes) {
+        scope.$watch("src", function (value) {
+          if (value) {
+            var imageAttributes = {};
+            angular.forEach(attributes, function (value, name) {
+              if (name.indexOf("$") != 0 && name != "src") {
+                imageAttributes[name] = value;
+              }
+            });
+            $(element).replaceWith($(scope.src).attr(imageAttributes));
+          }
+        });
+      }
+    
+    };
+  
+  }])
 
   /**
    * Initializer, provides a <code>$config</code> method to be called in a configuration block,
