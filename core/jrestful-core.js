@@ -749,7 +749,7 @@
       if (!_versionEntry.exists() || _versionEntry.getString() !== _version) {
         localStorage.clear();
         _versionEntry.setString(_version);
-        $log.debug("LocalRepository initialized to _version '" + _version + "'");
+        $log.debug("LocalRepository initialized to version '" + _version + "'");
       } else {
         LocalRepository.clearObsoleteWeakEntries();
       }
