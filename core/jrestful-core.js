@@ -60,11 +60,11 @@
   .factory("ZZ", ["$log",
   function ($log) {
 
-    var _zzUnknown = function (e) {
+    var _zzAny = function (e) {
       this.e = e;
     };
     
-    _zzUnknown.prototype = {
+    _zzAny.prototype = {
     
       isDefined: function () {
         return typeof this.e !== "undefined";
@@ -87,9 +87,9 @@
     };
   
     var _zzString = function (e) {
-      _zzUnknown.call(this, e);
+      _zzAny.call(this, e);
     };
-    _zzString.prototype = Object.create(_zzUnknown.prototype);
+    _zzString.prototype = Object.create(_zzAny.prototype);
     _zzString.prototype.constructor = _zzString;
     
     angular.extend(_zzString.prototype, {
@@ -144,9 +144,9 @@
     });
     
     var _zzArray = function (e) {
-      _zzUnknown.call(this, e);
+      _zzAny.call(this, e);
     };
-    _zzArray.prototype = Object.create(_zzUnknown.prototype);
+    _zzArray.prototype = Object.create(_zzAny.prototype);
     _zzArray.constructor = _zzArray;
     
     angular.extend(_zzArray.prototype, {
@@ -164,9 +164,9 @@
     });
     
     var _zzStorage = function (e) {
-      _zzUnknown.call(this, e);
+      _zzAny.call(this, e);
     };
-    _zzStorage.prototype = Object.create(_zzUnknown.prototype);
+    _zzStorage.prototype = Object.create(_zzAny.prototype);
     _zzStorage.constructor = _zzStorage;
     
     angular.extend(_zzStorage.prototype, {
@@ -184,9 +184,9 @@
     });
     
     var _zzObject = function (e) {
-      _zzUnknown.call(this, e);
+      _zzAny.call(this, e);
     };
-    _zzObject.prototype = Object.create(_zzUnknown.prototype);
+    _zzObject.prototype = Object.create(_zzAny.prototype);
     _zzObject.constructor = _zzObject;
     
     angular.extend(_zzObject.prototype, {
@@ -214,9 +214,9 @@
     });
     
     var _zzDate = function (e) {
-      _zzUnknown.call(this, e);
+      _zzAny.call(this, e);
     };
-    _zzDate.prototype = Object.create(_zzUnknown.prototype);
+    _zzDate.prototype = Object.create(_zzAny.prototype);
     _zzDate.prototype.constructor = _zzDate;
     
     angular.extend(_zzDate.prototype, {
@@ -252,12 +252,12 @@
         return new _zzStorage(e);
       case "[object Null]":
         $log.debug("element is null");
-        return new _zzUnknown(e);
+        return new _zzAny(e);
       case "[object Undefined]":
         $log.debug("element is undefined");
-        return new _zzUnknown(e);
+        return new _zzAny(e);
       default:
-        return new _zzUnknown(e);
+        return new _zzAny(e);
       }
     };
   
@@ -885,8 +885,8 @@
   /**
    * Utility directive to use Daniel Eden's animate.css library, requires jQuery UI.
    */
-  .directive("jrfAnimate", [
-  function () {
+  .directive("jrfAnimate", ["$log",
+  function ($log) {
     
     return {
       
@@ -899,6 +899,7 @@
       
       link: function (scope, element, attributes) {
         if (typeof $.prototype.zIndex !== "function") {
+          $log.debug("jQuery.prototype.zIndex not found, load jQuery UI before jrestful-core to use jrfAnimate");
           return;
         }
         var $element = $(element).removeClass("animated");
@@ -924,8 +925,8 @@
   /**
    * Builds a countdown, requires Evan Hahn's Humanize Duration library.
    */
-  .directive("jrfCountdown", ["$timeout",
-  function ($timeout) {
+  .directive("jrfCountdown", ["$timeout", "$log",
+  function ($timeout, $log) {
     
     return {
       
@@ -942,6 +943,7 @@
       
       link: function (scope, element, attributes) {
         if (typeof humanizeDuration !== "function") {
+          $log.debug("humanizeDuration not found, load it before jrestful-core to use jrfCountdown");
           return;
         }
         var to = Date.parse(scope.date);
