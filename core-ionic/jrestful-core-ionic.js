@@ -220,8 +220,13 @@
   /**
    * Gets Internet connection information, requires cordova-plugin-network-information plugin.
    */
-  .factory("InternetConnection", [
-  function () {
+  .factory("InternetConnection", ["$log",
+  function ($log) {
+    
+    if (!navigator || !navigator.connection) {
+      $log.debug("navigator.connection not found, cordova-plugin-network-information needed");
+      return {};
+    }
     
     var _onConnectionLostCallback;
     var _onConnectionRetrievedCallback;
