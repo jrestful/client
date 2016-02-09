@@ -426,7 +426,6 @@
     var PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX = ".p";
     var NEXT_WEAK_ENTRY_POINTER_SUFFIX = ".n";
     var LAST_WEAK_ENTRY_POINTER_NAME = "l";
-    var _reservedPrefixes = [ENTRY_PREFIX];
 
     var $log;
     var ZZ;
@@ -508,8 +507,8 @@
         throw new Error("Reserved keys: " + VERSION_ENTRY_NAME + ", " + FIRST_WEAK_ENTRY_POINTER_NAME + ", " + LAST_WEAK_ENTRY_POINTER_NAME);
       } else if (zzKey.endsWith(PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX, NEXT_WEAK_ENTRY_POINTER_SUFFIX, WEAK_ENTRIES_DATE_ENTRY_SUFFIX)) {
         throw new Error("Reserved suffixes: " + PREVIOUS_WEAK_ENTRY_POINTER_SUFFIX + ", " + NEXT_WEAK_ENTRY_POINTER_SUFFIX + ", " + WEAK_ENTRIES_DATE_ENTRY_SUFFIX);
-      } else if (zzKey.startsWith(_reservedPrefixes)) {
-        throw new Error("Reserved prefixes: " + _reservedPrefixes.join(", "));
+      } else if (zzKey.startsWith(ENTRY_PREFIX)) {
+        throw new Error("Reserved prefixes: " + ENTRY_PREFIX);
       }
       return weak ? new _Entry.Weak(key) : new _Entry(key);
     };
@@ -764,10 +763,6 @@
       setWeakEntriesLifetimeInDays: function (weakEntriesLifetimeInDays) {
         _weakEntriesLifetimeInDays = weakEntriesLifetimeInDays;
       },
-      
-      addReservedPrefix: function (reservedPrefix) {
-        _reservedPrefixes.push(ENTRY_PREFIX + reservedPrefix);
-      },
     
       $get: ["$log", "ZZ",
       function ($log, ZZ) {
@@ -782,111 +777,100 @@
   /**
    * Caches images data URLs in the local storage.
    */
-  .provider("ImageCache", ["LocalRepositoryProvider",
-  function (LocalRepositoryProvider) {
+  .factory("ImageCache", ["$q", "$log", "LocalRepository", "ZZ",
+  function ($q, $log, LocalRepository, ZZ) {
     
     var ENTRY_PREFIX = "ic.";
     
-    LocalRepositoryProvider.addReservedPrefix(ENTRY_PREFIX);
+    var _currentlyCaching = {};
     
-    return {
+    var _getDataUrl = function (imageUrl, imageType, imageQuality) {
+      var deferred = $q.defer();
+      var image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onerror = function () {
+        deferred.reject();
+      };
+      image.onload = function () {
+        var canvas = document.createElement("canvas");
+        canvas.height = this.naturalHeight;
+        canvas.width = this.naturalWidth;
+        canvas.getContext("2d").drawImage(this, 0, 0);
+        deferred.resolve(canvas.toDataURL(imageType, imageQuality));
+      };
+      image.src = imageUrl;
+      return deferred.promise;
+    };
+    
+    var ImageCache = {
+    
+      has: function (key) {
+        return LocalRepository.has(ENTRY_PREFIX + key);
+      },
       
-      $get: ["$q", "$log", "LocalRepository", "ZZ",
-      function ($q, $log, LocalRepository, ZZ) {
-        
-        var _currentlyCaching = {};
-        
-        var _getDataUrl = function (imageUrl, imageType, imageQuality) {
+      get: function (key) {
+        return LocalRepository.get(ENTRY_PREFIX + key);
+      },
+      
+      remove: function (key) {
+        LocalRepository.remove(ENTRY_PREFIX + key);
+      },
+      
+      cache: function (key, imageUrl, weak, imageType, imageQuality) {
+        if (_currentlyCaching[key]) {
+          $log.debug("Caching image " + key + " (" + imageUrl + ") already in progress");
+          return _currentlyCaching[key];
+        } else {
           var deferred = $q.defer();
-          var image = new Image();
-          image.crossOrigin = "anonymous";
-          image.onerror = function () {
-            deferred.reject();
-          };
-          image.onload = function () {
-            var canvas = document.createElement("canvas");
-            canvas.height = this.naturalHeight;
-            canvas.width = this.naturalWidth;
-            canvas.getContext("2d").drawImage(this, 0, 0);
-            deferred.resolve(canvas.toDataURL(imageType, imageQuality));
-          };
-          image.src = imageUrl;
-          return deferred.promise;
-        };
-        
-        var ImageCache = {
-        
-          has: function (key) {
-            return LocalRepository.has(ENTRY_PREFIX + key);
-          },
-          
-          get: function (key) {
-            return LocalRepository.get(ENTRY_PREFIX + key);
-          },
-          
-          remove: function (key) {
-            LocalRepository.remove(ENTRY_PREFIX + key);
-          },
-          
-          cache: function (key, imageUrl, weak, imageType, imageQuality) {
-            if (_currentlyCaching[key]) {
-              $log.debug("Caching image " + key + " (" + imageUrl + ") already in progress");
-              return _currentlyCaching[key];
-            } else {
-              var deferred = $q.defer();
-              if (ImageCache.has(key)) {
-                $log.debug("Image " + key + " (" + imageUrl + ") already cached");
-                deferred.resolve(ImageCache.get(key));
-              } else {
-                _currentlyCaching[key] = deferred.promise;
-                _getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
-                  $log.debug("Image " + key + " (" + imageUrl + ") cached");
-                  LocalRepository.set(ENTRY_PREFIX + key, dataUrl, weak);
-                  deferred.resolve(dataUrl);
-                  delete _currentlyCaching[key];
-                }, function () {
-                  $log.debug("Could not cache image " + key + " (" + imageUrl + ")");
-                  deferred.reject();
-                  delete _currentlyCaching[key];
-                })
-              }
-              return deferred.promise;
-            }
-          },
-          
-          forEach: function (callback) {
-            LocalRepository.forEach(function (key) {
-              if (ZZ(key).startsWith(ENTRY_PREFIX)) {
-                callback(key.substring(ENTRY_PREFIX.length));
-              }
-            });
-          },
-          
-          clear: function () {
-            var keys = [];
-            ImageCache.forEach(function (key) {
-              keys.push(key);
-            });
-            angular.forEach(keys, function (key) {
-              ImageCache.remove(key);
-            });
+          if (ImageCache.has(key)) {
+            $log.debug("Image " + key + " (" + imageUrl + ") already cached");
+            deferred.resolve(ImageCache.get(key));
+          } else {
+            _currentlyCaching[key] = deferred.promise;
+            _getDataUrl(imageUrl, imageType, imageQuality).then(function (dataUrl) {
+              $log.debug("Image " + key + " (" + imageUrl + ") cached");
+              LocalRepository.set(ENTRY_PREFIX + key, dataUrl, weak);
+              deferred.resolve(dataUrl);
+              delete _currentlyCaching[key];
+            }, function () {
+              $log.debug("Could not cache image " + key + " (" + imageUrl + ")");
+              deferred.reject();
+              delete _currentlyCaching[key];
+            })
           }
-          
-        };
-        
-        return ImageCache;
-        
-      }]
+          return deferred.promise;
+        }
+      },
+      
+      forEach: function (callback) {
+        LocalRepository.forEach(function (key) {
+          if (ZZ(key).startsWith(ENTRY_PREFIX)) {
+            callback(key.substring(ENTRY_PREFIX.length));
+          }
+        });
+      },
+      
+      clear: function () {
+        var keys = [];
+        ImageCache.forEach(function (key) {
+          keys.push(key);
+        });
+        angular.forEach(keys, function (key) {
+          ImageCache.remove(key);
+        });
+      }
       
     };
+    
+    return ImageCache;
     
   }])
   
   /**
    * Utility directive to use Daniel Eden's animate.css library, requires jQuery UI.
    */
-  .directive("jrfAnimate", ["$log",
-  function ($log) {
+  .directive("jrfAnimate", [
+  function () {
     
     return {
       
@@ -899,8 +883,7 @@
       
       link: function (scope, element, attributes) {
         if (typeof $.prototype.zIndex !== "function") {
-          $log.debug("jQuery.prototype.zIndex not found, load jQuery UI before jrestful-core to use jrfAnimate");
-          return;
+          throw new Error("jQuery.prototype.zIndex not found, load jQuery UI before jrestful-core to use jrfAnimate");
         }
         var $element = $(element).removeClass("animated");
         var zIndex = $element.zIndex();
@@ -925,8 +908,8 @@
   /**
    * Builds a countdown, requires Evan Hahn's Humanize Duration library.
    */
-  .directive("jrfCountdown", ["$timeout", "$log",
-  function ($timeout, $log) {
+  .directive("jrfCountdown", ["$timeout",
+  function ($timeout) {
     
     return {
       
@@ -943,8 +926,7 @@
       
       link: function (scope, element, attributes) {
         if (typeof humanizeDuration !== "function") {
-          $log.debug("humanizeDuration not found, load it before jrestful-core to use jrfCountdown");
-          return;
+          throw new Error("humanizeDuration not found, load it before jrestful-core to use jrfCountdown");
         }
         var to = Date.parse(scope.date);
         var options = { round: true, language: scope.language || "en" };

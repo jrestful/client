@@ -56,6 +56,8 @@
     $ionicPlatform.registerBackButtonAction(function () {
       History.goBack();
     }, 101);
+
+    $injector.get("BackgroundMusic").$bootstrap();
     
   };
   
@@ -220,12 +222,11 @@
   /**
    * Gets Internet connection information, requires cordova-plugin-network-information plugin.
    */
-  .factory("InternetConnection", ["$log",
-  function ($log) {
+  .factory("InternetConnection", [
+  function () {
     
-    if (!navigator || !navigator.connection) {
-      $log.debug("navigator.connection not found, cordova-plugin-network-information needed");
-      return {};
+    if (!navigator || !navigator.connection || !navigator.connection.type || !Connection) {
+      throw new Error("navigator.connection.type or Connection not found, cordova-plugin-network-information needed to use InternetConnection");
     }
     
     var _onConnectionLostCallback;
@@ -252,6 +253,89 @@
       isConnected: function () {
         return navigator.connection.type != Connection.NONE;
       }
+      
+    };
+    
+  }])
+  
+  /**
+   * Handles background music, requires cordova-plugin-media plugin.
+   */
+  .provider("BackgroundMusic", [
+  function () {
+    
+    var MUTE_ENTRY = "bm.mute";
+    
+    var _source;
+    var _media;
+    
+    var _assertInitialized = function () {
+      if (!_media) {
+        throw new Error("BackgroundMusic not initialized, use BackgroundMusicProvider.setSource(mediaFilePath) in a config block");
+      }
+    };
+    
+    return {
+      
+      setSource: function (source) {
+        if (typeof Media !== "function") {
+          throw new Error("Media not found, cordova-plugin-media needed to use BackgroundMusic");
+        }
+        _source = source;
+      },
+      
+      $get: ["$log", "LocalRepository",
+      function ($log, LocalRepository) {
+        
+        var _muted = LocalRepository.has(MUTE_ENTRY);
+        
+        return {
+          
+          $bootstrap: function () {
+            if (_source) {
+              $log.debug("Loading " + _source);
+              _media = new Media(_source, angular.noop, function (error) {
+                $log.debug("An error occurred with media " + _source + ": " + error);
+              }, function (status) {
+                if (status == Media.MEDIA_STOPPED) {
+                  $log.debug("Media " + _source + " ended, starting again");
+                  _media.play();
+                }
+              });
+              if (!_muted) {
+                _media.play();
+              }
+            }
+          },
+          
+          mute: function () {
+            _assertInitialized();
+            if (!LocalRepository.has(MUTE_ENTRY)) {
+              $log.debug("Muting background music (" + _source + ")");
+              LocalRepository.set(MUTE_ENTRY, 1);
+              _muted = true;
+              _media.pause();
+            }
+          },
+          
+          unmute: function () {
+            _assertInitialized();
+            if (LocalRepository.has(MUTE_ENTRY)) {
+              $log.debug("Unmuting background music (" + _source + ")");
+              LocalRepository.remove(MUTE_ENTRY);
+              _muted = false;
+              _media.play();
+            }
+          },
+          
+          isPlaying: function () {
+            _assertInitialized();
+            return !_muted;
+          }
+          
+        };
+        
+      }]
       
     };
     
