@@ -267,13 +267,6 @@
     var MUTE_ENTRY = "bm.mute";
     
     var _source;
-    var _media;
-    
-    var _assertInitialized = function () {
-      if (!_media) {
-        throw new Error("BackgroundMusic not initialized, use BackgroundMusicProvider.setSource(mediaFilePath) in a config block");
-      }
-    };
     
     return {
       
@@ -287,7 +280,29 @@
       $get: ["$log", "LocalRepository",
       function ($log, LocalRepository) {
         
+        var _media;
         var _muted = LocalRepository.has(MUTE_ENTRY);
+        var _repeatInfinitely = true;
+        
+        var _assertInitialized = function () {
+          if (!_media) {
+            throw new Error("BackgroundMusic not initialized, use BackgroundMusicProvider.setSource(mediaFilePath) in a config block");
+          }
+        };
+        
+        document.addEventListener("pause", function () {
+          _repeatInfinitely = false;
+          if (_media && !_muted) {
+            _media.pause();
+          }
+        }, false);
+        
+        document.addEventListener("resume", function () {
+          _repeatInfinitely = true;
+          if (_media && !_muted) {
+            _media.play();
+          }
+        }, false);
         
         return {
           
@@ -297,7 +312,7 @@
               _media = new Media(_source, angular.noop, function (error) {
                 $log.debug("An error occurred with media " + _source + ": " + error);
               }, function (status) {
-                if (status == Media.MEDIA_STOPPED) {
+                if (_repeatInfinitely && status == Media.MEDIA_STOPPED) {
                   $log.debug("Media " + _source + " ended, starting again");
                   _media.play();
                 }
