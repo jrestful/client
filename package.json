@@ -1,0 +1,22 @@
+{
+  "name": "jrestful",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jrestful/client",
+  "author": "sp00m <christophe.maillard@rocketmail.com>",
+  "license": "LGPL-3.0",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "bower.json",
+    "auth/jrestful-auth.js",
+    "core/jrestful-core.js",
+    "core-ionic/jrestful-core-ionic.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrestful/client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jrestful/client/issues"
+  }
+}
