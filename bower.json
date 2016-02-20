@@ -4,12 +4,12 @@
   "authors": [
     "sp00m <christophe.maillard@rocketmail.com>"
   ],
+  "license": "LGPL-3.0",
   "main": [
     "auth/jrestful-auth.js",
     "core/jrestful-core.js",
     "core-ionic/jrestful-core-ionic.js"
   ],
-  "license": "LGPL-3.0",
   "ignore": [
     "**/.*"
   ]
