@@ -40,6 +40,10 @@
       
     }
     
+    if ($injector.has("$animateProvider")) {
+      $injector.get("$animateProvider").classNameFilter(/^(?!.*\bjrf-disable-ng-animate\b)/);
+    }
+    
   };
   
   /**
