@@ -889,7 +889,7 @@
         if (typeof $.prototype.zIndex !== "function") {
           throw new Error("jQuery.prototype.zIndex not found, load jQuery UI before jrestful-core to use jrfAnimate");
         }
-        var $element = $(element).removeClass("animated");
+        var $element = element.removeClass("animated");
         var zIndex = $element.zIndex();
         var tempZIndex = zIndex + 1;
         scope.$watch("object.animate", function (animate) {
@@ -970,7 +970,7 @@
                 imageAttributes[name] = value;
               }
             });
-            $(element).replaceWith($(scope.src).attr(imageAttributes));
+            element.replaceWith($(scope.src).attr(imageAttributes));
           }
         });
       }
