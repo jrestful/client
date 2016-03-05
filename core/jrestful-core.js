@@ -217,7 +217,7 @@
     
       forEach: function (callback, defaultReturnValue, thisArg) {
         for (var i = 0; i < this.e.length; i++) {
-          var output = callback.call(context, this.e[k], k, this.e);
+          var output = callback.call(thisArg, this.e[k], k, this.e);
           if (typeof output !== "undefined") {
             return output;
           }
