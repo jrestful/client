@@ -1,4 +1,43 @@
-(function (angular, undefined) {
+(function (global, factory, undefined) {
+  
+  "use strict";
+  
+  if (typeof global.define === "function" && global.define.amd) {
+    
+    global.require(["angular", "jquery", "humanize-duration"], factory, function (error) {
+      
+      for (var i = 0, n = error.requireModules.length; i < n; i++) {
+        var missingDependency = error.requireModules[i];
+        if (missingDependency === "angular") {
+          throw new Error("angular required for jrestful.core (expected module name: angular)");
+        } else if (missingDependency === "jquery") {
+          throw new Error("jQuery required for jrestful.core (expected module name: jquery)");
+        } else {
+          if (missingDependency === "humanize-duration") {
+            console.log("humanizeDuration not found (expected module name: humanize-duration)");
+          }
+          global.requirejs.undef(missingDependency);
+          global.define(missingDependency, [], function () {
+            return undefined;
+          });
+        }
+      }
+      
+      global.require(["angular", "jquery", "humanize-duration"], factory);
+      
+    });
+    
+  } else {
+    if (typeof global.angular === "undefined") {
+      throw new Error("angular required for jrestful-core");
+    } else if (typeof global.jQuery === "undefined") {
+      throw new Error("jQuery required for jrestful-core");
+    } else {
+      factory(global.angular, global.jQuery, global.humanizeDuration);
+    }
+  }
+  
+})(this, function (angular, $, humanizeDuration, undefined) {
     
   "use strict";
   
@@ -198,7 +237,7 @@
       forEach: function (callback, defaultReturnValue, thisArg) {
         for (var k in this.e) {
           if (this.e.hasOwnProperty(k)) {
-            var output = callback.call(context, this.e[k], k, this.e);
+            var output = callback.call(thisArg, this.e[k], k, this.e);
             if (typeof output !== "undefined") {
               return output;
             }
@@ -318,8 +357,8 @@
    * <li><code>$embedded()</code> method that returns the embedded resources after having handled their links as defined in #2 and #4.</li>
    * </ol>
    */
-  .factory("RestInterceptor", ["$injector",
-  function ($injector) {
+  .factory("RestInterceptor", ["$injector", "ZZ",
+  function ($injector, ZZ) {
     
     var _linkFactory = function (rel, link) {
       return {
@@ -385,7 +424,7 @@
         var handled = false;
         data.$embedded = function () {
           if (!handled) {
-            angular.forEach(data._embedded, function (data) {
+            ZZ(data._embedded).forEach(function (data) {
               _handleLinks(data);
             });
             handled = true;
@@ -859,7 +898,7 @@
         ImageCache.forEach(function (key) {
           keys.push(key);
         });
-        angular.forEach(keys, function (key) {
+        ZZ(keys).forEach(function (key) {
           ImageCache.remove(key);
         });
       }
@@ -885,18 +924,18 @@
         animationName: "@jrfAnimation"
       },
       
-      link: function (scope, element, attributes) {
-        if (typeof $.prototype.zIndex !== "function") {
-          throw new Error("jQuery.prototype.zIndex not found, load jQuery UI before jrestful-core to use jrfAnimate");
+      link: function (scope, element) {
+        if (typeof element.zIndex !== "function") {
+          throw new Error("jQuery UI required for jrf-animate");
         }
-        var $element = element.removeClass("animated");
-        var zIndex = $element.zIndex();
+        var element = element.removeClass("animated");
+        var zIndex = element.zIndex();
         var tempZIndex = zIndex + 1;
         scope.$watch("object.animate", function (animate) {
           if (animate) {
-            $element.zIndex(tempZIndex).addClass("animated " + scope.animationName)
+            element.zIndex(tempZIndex).addClass("animated " + scope.animationName)
             .one("webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend", function () {
-              $element.zIndex(zIndex).removeClass("animated " + scope.animationName);
+              element.zIndex(zIndex).removeClass("animated " + scope.animationName);
               scope.$apply(function () {
                 delete scope.object.animate;
               });
@@ -928,9 +967,9 @@
       
       template: '<span class="jrf-countdown" ng-bind="countdown"></span>',
       
-      link: function (scope, element, attributes) {
+      link: function (scope) {
         if (typeof humanizeDuration !== "function") {
-          throw new Error("humanizeDuration not found, load it before jrestful-core to use jrfCountdown");
+          throw new Error("humanizeDuration required for jrf-countdown");
         }
         var to = Date.parse(scope.date);
         var options = { round: true, language: scope.language || "en" };
@@ -950,8 +989,8 @@
   /**
    * Builds an img tag from an Image instance.
    */
-  .directive("jrfImage", [
-  function () {
+  .directive("jrfImage", ["ZZ",
+  function (ZZ) {
     
     return {
       
@@ -962,15 +1001,15 @@
       },
       
       link: function (scope, element, attributes) {
-        scope.$watch("src", function (value) {
-          if (value) {
+        scope.$watch("src", function (image) {
+          if (image) {
             var imageAttributes = {};
-            angular.forEach(attributes, function (value, name) {
+            ZZ(attributes).forEach(function (value, name) {
               if (name.indexOf("$") != 0 && name != "src") {
                 imageAttributes[name] = value;
               }
             });
-            element.replaceWith($(scope.src).attr(imageAttributes));
+            element.replaceWith($(image).attr(imageAttributes));
           }
         });
       }
@@ -1024,4 +1063,4 @@
     
   }]);
   
-})(angular);
+});
