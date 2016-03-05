@@ -962,7 +962,8 @@
       
       scope: {
         date: "@jrfDate",
-        language: "@jrfLanguage"
+        language: "@jrfLanguage",
+        callback: "&jrfOnceReached"
       },
       
       template: '<span class="jrf-countdown" ng-bind="countdown"></span>',
@@ -971,13 +972,15 @@
         if (typeof humanizeDuration !== "function") {
           throw new Error("humanizeDuration required for jrf-countdown");
         }
-        var to = Date.parse(scope.date);
+        var to = new Date(isNaN(scope.date) ? scope.date : parseInt(scope.date, 10));
         var options = { round: true, language: scope.language || "en" };
         (function setCountdown() {
           var delta = Math.max(to - Date.now(), 0);
           scope.countdown = humanizeDuration(delta, options);
           if (delta > 0) {
             $timeout(setCountdown, 1000);
+          } else {
+            scope.callback();
           }
         })();
       }
