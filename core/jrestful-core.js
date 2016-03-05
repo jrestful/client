@@ -68,14 +68,15 @@
       // credits to https://gist.github.com/jed/982883:
       var uuid = function (e){ return e ? (e ^ Math.random() * 16 >> e/4).toString(16) : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, uuid); };
       
-      $httpProvider.interceptors.push(function () {
+      $httpProvider.interceptors.push([
+      function () {
         return {
           request: function (config) {
             document.cookie = Security.csrf.cookieName + "=" + uuid();
             return config;
           }
         };
-      });
+      }]);
       
     }
     
