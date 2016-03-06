@@ -1,4 +1,36 @@
-(function (angular, undefined) {
+(function (global, factory, undefined) {
+  
+  "use strict";
+  
+  if (typeof global.define === "function" && global.define.amd) {
+    
+    global.require(["angular"], factory, function (error) {
+      
+      for (var i = 0, n = error.requireModules.length; i < n; i++) {
+        var missingDependency = error.requireModules[i];
+        if (missingDependency === "angular") {
+          throw new Error("angular required for jrestful.core.ionic (expected module name: angular)");
+        } else {
+          global.requirejs.undef(missingDependency);
+          global.define(missingDependency, [], function () {
+            return undefined;
+          });
+        }
+      }
+      
+      global.require(["angular"], factory);
+      
+    });
+    
+  } else {
+    if (typeof global.angular === "undefined") {
+      throw new Error("angular required for jrestful-core");
+    } else {
+      factory(global.angular);
+    }
+  }
+  
+})(this, function (angular, undefined) {
   
   "use strict";
   
@@ -226,7 +258,7 @@
   function () {
     
     if (!navigator || !navigator.connection || !navigator.connection.type || !Connection) {
-      throw new Error("navigator.connection.type or Connection not found, cordova-plugin-network-information needed to use InternetConnection");
+      throw new Error("cordova-plugin-network-information required for InternetConnection");
     }
     
     var _onConnectionLostCallback;
@@ -272,7 +304,7 @@
       
       setSource: function (source) {
         if (typeof Media !== "function") {
-          throw new Error("Media not found, cordova-plugin-media needed to use BackgroundMusic");
+          throw new Error("cordova-plugin-media required for BackgroundMusic");
         }
         _source = source;
       },
@@ -365,4 +397,4 @@
     jrestfulProvider.$extend(_config, _run);
   }]);
   
-})(angular);
+});

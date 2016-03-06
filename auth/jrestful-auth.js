@@ -1,4 +1,36 @@
-(function (angular, undefined) {
+(function (global, factory, undefined) {
+  
+  "use strict";
+  
+  if (typeof global.define === "function" && global.define.amd) {
+    
+    global.require(["angular"], factory, function (error) {
+      
+      for (var i = 0, n = error.requireModules.length; i < n; i++) {
+        var missingDependency = error.requireModules[i];
+        if (missingDependency === "angular") {
+          throw new Error("angular required for jrestful.auth (expected module name: angular)");
+        } else {
+          global.requirejs.undef(missingDependency);
+          global.define(missingDependency, [], function () {
+            return undefined;
+          });
+        }
+      }
+      
+      global.require(["angular"], factory);
+      
+    });
+    
+  } else {
+    if (typeof global.angular === "undefined") {
+      throw new Error("angular required for jrestful-core");
+    } else {
+      factory(global.angular);
+    }
+  }
+  
+})(this, function (angular, undefined) {
   
   "use strict";
   
@@ -169,4 +201,4 @@
     jrestfulProvider.$extend(_config, _run);
   }]);
   
-})(angular);
+});
