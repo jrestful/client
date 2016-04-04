@@ -182,35 +182,47 @@
   /**
    * Utility based on $ionicPopup to display popups.
    */
-  .factory("Popup", ["$ionicPopup", "$q", "$rootScope",
-  function ($ionicPopup, $q, $rootScope) {
+  .factory("Popup", ["$ionicPopup", "$q", "$rootScope", "ZZ",
+  function ($ionicPopup, $q, $rootScope, ZZ) {
     
     var _alert = function (title, content, scope, okType) {
-      var popup = $ionicPopup.alert({
+      var popup;
+      var options = {
         title: title,
-        template: content,
         scope: angular.extend($rootScope.$new(), {
           close: function () {
             popup.close();
           }
         }, scope),
         okType: okType
-      });
+      };
+      if (ZZ(content).endsWith(".html")) {
+        options.templateUrl = content;
+      } else {
+        options.template = content;
+      }
+      popup = $ionicPopup.alert(options);
       return popup;
     };
     
     var _confirm = function (title, content, scope, okType) {
       var deferred = $q.defer();
-      var popup = $ionicPopup.confirm({
+      var popup;
+      var options = {
         title: title,
-        template: content,
         scope: angular.extend($rootScope.$new(), {
           close: function () {
             popup.close();
           }
         }, scope),
         okType: okType
-      });
+      };
+      if (ZZ(content).endsWith(".html")) {
+        options.templateUrl = content;
+      } else {
+        options.template = content;
+      }
+      popup = $ionicPopup.confirm(options);
       deferred.promise.close = popup.close;
       popup.then(function (confirmed) {
         if (confirmed) {
