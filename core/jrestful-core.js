@@ -1021,6 +1021,33 @@
     };
   
   }])
+  
+  /**
+   * Handles forms inputs errors messages.
+   */
+  .directive("jrfWhenInput", ["$compile",
+  function ($compile) {
+    
+    return {
+      
+      restrict: "A",
+      terminal: true,
+      priority: 1000,
+      require: "^form",
+      
+      link: function (scope, element, attributes, formController) {
+        var touched = formController.$name + "." + attributes.jrfWhenInput + ".$touched";
+        var error = formController.$name + "." + attributes.jrfWhenInput + ".$error." + attributes.jrfFailsAt;
+        var and = attributes.ngShow;
+        element.attr("ng-show", touched + " && " + error + (and ? " && (" + and + ")" : ""));
+        element.removeAttr("jrf-when-input");
+        element.removeAttr("jrf-fails-at");
+        $compile(element)(scope);
+      }
+    
+    };
+    
+  }])
 
   /**
    * Initializer, provides a <code>$config</code> method to be called in a configuration block,
