@@ -1037,9 +1037,11 @@
       
       link: function (scope, element, attributes, formController) {
         var touched = formController.$name + "." + attributes.jrfWhenInput + ".$touched";
-        var error = formController.$name + "." + attributes.jrfWhenInput + ".$error." + attributes.jrfFailsAt;
+        var error = attributes.jrfFailsAt.split(/\s+/g).map(function (value) {
+          return formController.$name + "." + attributes.jrfWhenInput + ".$error." + value;
+        }).join(" || ");
         var and = attributes.ngShow;
-        element.attr("ng-show", touched + " && " + error + (and ? " && (" + and + ")" : ""));
+        element.attr("ng-show", touched + " && (" + error + ")" + (and ? " && (" + and + ")" : ""));
         element.removeAttr("jrf-when-input");
         element.removeAttr("jrf-fails-at");
         $compile(element)(scope);
