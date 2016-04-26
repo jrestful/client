@@ -182,47 +182,50 @@
   /**
    * Utility based on $ionicPopup to display popups.
    */
-  .factory("Popup", ["$ionicPopup", "$q", "$rootScope",
-  function ($ionicPopup, $q, $rootScope) {
+  .factory("Popup", ["$ionicPopup", "$q", "$rootScope", "ZZ",
+  function ($ionicPopup, $q, $rootScope, ZZ) {
     
-    var _alert = function (title, content, scope, okType) {
-      var popup = $ionicPopup.alert({
+    var _buildPopup = function (type, title, content, scope, okType) {
+      var popup;
+      var options = {
         title: title,
-        template: content,
         scope: angular.extend($rootScope.$new(), {
           close: function () {
             popup.close();
           }
-        }, scope),
-        okType: okType
-      });
+        }, scope)
+      };
+      if (ZZ(content).endsWith(".html")) {
+        options.templateUrl = content;
+      } else {
+        options.template = content;
+      }
+      if (okType) {
+        options.okType = okType;
+      }
+      popup = $ionicPopup[type](options);
       return popup;
     };
     
+    var _show = function (title, content, scope) {
+      return _buildPopup("show", title, content, scope);
+    };
+    
+    var _alert = function (title, content, scope, okType) {
+      return _buildPopup("alert", title, content, scope, okType);
+    };
+    
     var _confirm = function (title, content, scope, okType) {
-      var deferred = $q.defer();
-      var popup = $ionicPopup.confirm({
-        title: title,
-        template: content,
-        scope: angular.extend($rootScope.$new(), {
-          close: function () {
-            popup.close();
-          }
-        }, scope),
-        okType: okType
+      return _buildPopup("confirm", title, content, scope, okType).then(function (confirmed) {
+        return confirmed ? $q.resolve() : $q.reject();
       });
-      deferred.promise.close = popup.close;
-      popup.then(function (confirmed) {
-        if (confirmed) {
-          deferred.resolve();
-        } else {
-          deferred.reject();
-        }
-      });
-      return deferred.promise;
     };
     
     return {
+      
+      open: function (title, content, scope) {
+        return _show(title, content, scope);
+      },
       
       error: function (title, content, scope) {
         return _alert(title, content, scope, "button-assertive");
