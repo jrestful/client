@@ -78,7 +78,7 @@
     var _userProfile = {};
     
     var _fetchUserProfile = function () {
-      return Auth.getProfile(function (response) {
+      return Auth.getProfile().$promise.then(function (response) {
         
         ZZ(_userProfile).clear();
         
