@@ -72,8 +72,8 @@
    * Encapsulates the current user profile to implement the <code>$hasRole</code>, <code>$hasAnyRole</code>, <code>$isAnonymous</code>,
    * <code>$isAuthenticated</code> and <code>$refresh</code> methods.
    */
-  .factory("UserProfile", ["$q", "$rootScope", "$log", "Auth", "ZZ",
-  function ($q, $rootScope, $log, Auth, ZZ) {
+  .factory("UserProfile", ["$rootScope", "$log", "Auth", "ZZ",
+  function ($rootScope, $log, Auth, ZZ) {
   
     var _userProfile = {};
     
