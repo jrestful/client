@@ -1,6 +1,4 @@
-(function (global, factory, undefined) {
-  
-  "use strict";
+(function (global, factory, undefined) { "use strict";
   
   if (typeof global.define === "function" && global.define.amd) {
     

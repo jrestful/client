@@ -1,6 +1,4 @@
-(function (global, factory, undefined) {
-  
-  "use strict";
+(function (global, factory, undefined) { "use strict";
   
   if (typeof global.define === "function" && global.define.amd) {
     
@@ -74,18 +72,17 @@
    * Encapsulates the current user profile to implement the <code>$hasRole</code>, <code>$hasAnyRole</code>, <code>$isAnonymous</code>,
    * <code>$isAuthenticated</code> and <code>$refresh</code> methods.
    */
-  .factory("UserProfile", ["$q", "$rootScope", "$log", "Auth", "ZZ",
-  function ($q, $rootScope, $log, Auth, ZZ) {
+  .factory("UserProfile", ["$rootScope", "$log", "Auth", "ZZ",
+  function ($rootScope, $log, Auth, ZZ) {
   
     var _userProfile = {};
     
     var _fetchUserProfile = function () {
-      var deferred = $q.defer();
-      Auth.getProfile(function (response) {
+      return Auth.getProfile().$promise.then(function (response) {
         
         ZZ(_userProfile).clear();
         
-        deferred.resolve(angular.extend(_userProfile, response, {
+        angular.extend(_userProfile, response, {
           
           $refresh: _fetchUserProfile,
           
@@ -107,15 +104,14 @@
             return !_userProfile.anonymous;
           }
           
-        }));
+        });
         
         $log.debug("User profile fetched");
         $rootScope.$broadcast("userProfileFetched", _userProfile);
         
-      }, function () {
-        deferred.reject();
+        return _userProfile;
+        
       });
-      return deferred.promise;
     };
   
     return _fetchUserProfile();
@@ -135,55 +131,47 @@
       FORBIDDEN: 403,
   
       hasRole: function (role) {
-        var deferred = $q.defer();
-        UserProfile.then(function (userProfile) {
+        return UserProfile.then(function (userProfile) {
           if (userProfile.$hasRole(role)) {
-            deferred.resolve(Access.OK);
+            return Access.OK;
           } else if (userProfile.$isAnonymous()) {
-            deferred.reject(Access.UNAUTHORIZED);
+            return $q.reject(Access.UNAUTHORIZED);
           } else {
-            deferred.reject(Access.FORBIDDEN);
+            return $q.reject(Access.FORBIDDEN);
           }
         });
-        return deferred.promise;
       },
   
       hasAnyRole: function (roles) {
-        var deferred = $q.defer();
-        UserProfile.then(function (userProfile) {
+        return UserProfile.then(function (userProfile) {
           if (userProfile.$hasAnyRole(roles)) {
-            deferred.resolve(Access.OK);
+            return Access.OK;
           } else if (userProfile.$isAnonymous()) {
-            deferred.reject(Access.UNAUTHORIZED);
+            return $q.reject(Access.UNAUTHORIZED);
           } else {
-            deferred.reject(Access.FORBIDDEN);
+            return $q.reject(Access.FORBIDDEN);
           }
         });
-        return deferred.promise;
       },
   
       isAnonymous: function () {
-        var deferred = $q.defer();
-        UserProfile.then(function (userProfile) {
+        return UserProfile.then(function (userProfile) {
           if (userProfile.$isAnonymous()) {
-            deferred.resolve(Access.OK);
+            return Access.OK;
           } else {
-            deferred.reject(Access.FORBIDDEN);
+            return $q.reject(Access.FORBIDDEN);
           }
         });
-        return deferred.promise;
       },
   
       isAuthenticated: function () {
-        var deferred = $q.defer();
-        UserProfile.then(function (userProfile) {
+        return UserProfile.then(function (userProfile) {
           if (userProfile.$isAuthenticated()) {
-            deferred.resolve(Access.OK);
+            return Access.OK;
           } else {
-            deferred.reject(Access.UNAUTHORIZED);
+            return $q.reject(Access.UNAUTHORIZED);
           }
         });
-        return deferred.promise;
       }
   
     };
